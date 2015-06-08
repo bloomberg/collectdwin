@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <?if $(var.Platform) = x64 ?>
+  <?define ProductName = "CollectdWinService (64 bit)" ?>
+  <?define Win64 = "yes" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+  <?else ?>
+  <?define ProductName = "CollectdWinService (32 bit)" ?>
+  <?define Win64 = "no" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+  <?endif ?>
+
+  <?define UpgradeCode = "879ad1b0-4d67-4fac-be7b-2958cf71af73"?>
+  <?define Version = "!(bind.FileVersion.CollectdWinService.exe)"?>
+  <Product Name="$(var.ProductName)"
+           Id="*"
+           UpgradeCode="$(var.UpgradeCode)"
+           Manufacturer="Bloomberg LP"
+           Version="$(var.Version)"
+           Language="1033">
+    <Package InstallerVersion="200"
+             Compressed="yes" />
+    <Media Id="1"
+           Cabinet="media1.cab"
+           EmbedCab="yes" />
+    <Directory Id="TARGETDIR"
+               Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="CollectdWin"
+                   Name="CollectdWin">
+          <Component Id="BloombergFLP.CollectdWinService"
+                     Guid="{59727D06-40F4-4510-800E-8D224A652627}">
+            <File Id="CollectdWinService.exe"
+                  Name="CollectdWinService.exe"
+                  Source="..\CollectdWinService\bin\$(var.Platform)\Debug\CollectdWinService.exe"
+                  Vital="yes"
+                  KeyPath="yes"
+                  DiskId="1" />
+            <File Id="NLog.dll"
+                  Name="NLog.dll"
+                  Source="..\..\third-party\NLog.dll"
+                  Vital="yes"
+                  KeyPath="no"
+                  DiskId="1" />
+            <File Id="RabbitMQ.Client.dll"
+                  Name="RabbitMQ.Client.dll"
+                  Source="..\..\third-party\RabbitMQ.Client.dll"
+                  Vital="yes"
+                  KeyPath="no"
+                  DiskId="1" />
+            <File Id="types.db"
+                  Name="types.db"
+                  Source="..\CollectdWinService\bin\$(var.Platform)\Debug\types.db"
+                  Vital="yes"
+                  KeyPath="no"
+                  DiskId="1" />
+            <File Id="CollectdWinService.exe.config"
+                  Name="CollectdWinService.exe.config"
+                  Source="..\CollectdWinService\bin\$(var.Platform)\Debug\CollectdWinService.exe.config"
+                  Vital="yes"
+                  KeyPath="no"
+                  DiskId="1" />
+            <ServiceInstall Id="ServiceInstaller"
+                            Type="ownProcess"
+                            Vital="yes"
+                            Name="$(var.ProductName)"
+                            DisplayName="$(var.ProductName)"
+                            Description="$(var.ProductName)"
+                            Start="auto"
+                            Account="LocalSystem"
+                            ErrorControl="ignore"
+                            Interactive="no" />
+            <ServiceControl Id="StartService"
+                            Start="install"
+                            Stop="both"
+                            Remove="uninstall"
+                            Name="$(var.ProductName)"
+                            Wait="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id="ProductFeature"
+             Title="CollectdWinService"
+             Level="1">
+      <ComponentRef Id="BloombergFLP.CollectdWinService" />
+    </Feature>
+
+    <Upgrade Id="$(var.UpgradeCode)">
+      <UpgradeVersion Minimum="0.1.0"
+                      IncludeMinimum="yes"
+                      OnlyDetect="no"
+                      Maximum="$(var.Version)"
+                      IncludeMaximum="yes"
+                      Property="PREVIOUSFOUND" />
+    </Upgrade>
+
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallValidate" />
+    </InstallExecuteSequence>
+
+  </Product>
+</Wix>
