@@ -73,7 +73,6 @@
                             ErrorControl="ignore"
                             Interactive="no" />
             <ServiceControl Id="StartService"
-                            Start="install"
                             Stop="both"
                             Remove="uninstall"
                             Name="$(var.ProductName)"
