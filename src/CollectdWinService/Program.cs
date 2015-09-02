@@ -23,10 +23,13 @@ namespace BloombergFLP.CollectdWin
 
             var collectdWinService = new CollectdWinService();
 
-            if (Array.Find(args, s => s.Equals(@"/console")) != null)
+            if (Array.Find(args, s => s.Equals(@"console")) != null)
             {
+                Console.WriteLine("*** Starting CollectdWin in console mode***");
                 // run as a console application for testing and debugging purpose
                 collectdWinService.StartService();
+                Console.WriteLine("*** Enter Ctrl-C to exit: ***");
+                Console.ReadLine();
             }
             else
             {
@@ -34,6 +37,7 @@ namespace BloombergFLP.CollectdWin
                 ServiceBase[] servicesToRun = {collectdWinService};
                 ServiceBase.Run(servicesToRun);
             }
+            Logger.Error("CollectdWin: exiting ...");
         }
     }
 }
