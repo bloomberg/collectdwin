@@ -34,6 +34,13 @@ namespace BloombergFLP.CollectdWin
             set { base["Amqp"] = value; }
         }
 
+        [ConfigurationProperty("WriteHttp", IsRequired = false)]
+        public WriteHttpConfig WriteHttp
+        {
+            get { return (WriteHttpConfig)base["WriteHttp"]; }
+            set { base["WriteHttp"] = value; }
+        }
+
         [ConfigurationProperty("WindowsPerformanceCounters", IsRequired = false)]
         public WindowsPerformanceCountersConfig WindowsPerformanceCounters
         {
@@ -115,6 +122,17 @@ namespace BloombergFLP.CollectdWin
             }
         }
 
+        public sealed class WindowsPerformanceCountersConfig : ConfigurationElement
+        {
+            [ConfigurationProperty("Counters", IsRequired = false)]
+            [ConfigurationCollection(typeof(CounterConfigCollection), AddItemName = "Counter")]
+            public CounterConfigCollection Counters
+            {
+                get { return (CounterConfigCollection)base["Counters"]; }
+                set { base["Counters"] = value; }
+            }
+        }
+
         public sealed class CounterConfig : ConfigurationElement
         {
             [ConfigurationProperty("Category", IsRequired = true)]
@@ -182,7 +200,7 @@ namespace BloombergFLP.CollectdWin
             }
         }
 
-        public class CounterConfigCollection : ConfigurationElementCollection
+        public sealed class CounterConfigCollection : ConfigurationElementCollection
         {
             protected override ConfigurationElement CreateNewElement()
             {
@@ -220,7 +238,7 @@ namespace BloombergFLP.CollectdWin
             }
         }
 
-        public class PluginCollection : ConfigurationElementCollection
+        public sealed class PluginCollection : ConfigurationElementCollection
         {
             protected override ConfigurationElement CreateNewElement()
             {
@@ -395,16 +413,93 @@ namespace BloombergFLP.CollectdWin
             }
         }
 
-        public sealed class WindowsPerformanceCountersConfig : ConfigurationElement
+        public sealed class WriteHttpNodeConfigCollection : ConfigurationElementCollection
         {
-            [ConfigurationProperty("Counters", IsRequired = false)]
-            [ConfigurationCollection(typeof (CounterConfigCollection), AddItemName = "Counter")]
-            public CounterConfigCollection Counters
+            protected override ConfigurationElement CreateNewElement()
             {
-                get { return (CounterConfigCollection) base["Counters"]; }
-                set { base["Counters"] = value; }
+                return new WriteHttpNodeConfig();
+            }
+
+            protected override object GetElementKey(ConfigurationElement element)
+            {
+                var nodeConfig = (WriteHttpNodeConfig)element;
+                return (nodeConfig.Name);
             }
         }
+
+        public sealed class WriteHttpNodeConfig : ConfigurationElement
+        {
+            [ConfigurationProperty("Name", IsRequired = true)]
+            public string Name
+            {
+                get { return (string)base["Name"]; }
+                set { base["Name"] = value; }
+            }
+
+            [ConfigurationProperty("Url", IsRequired = true)]
+            public string Url
+            {
+                get { return (string)base["Url"]; }
+                set { base["Url"] = value; }
+            }
+
+            [ConfigurationProperty("Timeout", IsRequired = true)]
+            public int Timeout
+            {
+                get { return (int)base["Timeout"]; }
+                set { base["Timeout"] = value; }
+            }
+
+            [ConfigurationProperty("BatchSize", IsRequired = true)]
+            public int BatchSize
+            {
+                get { return (int)base["BatchSize"]; }
+                set { base["BatchSize"] = value; }
+            }
+
+            [ConfigurationProperty("MaxIdleTime", IsRequired = false)]
+            public int MaxIdleTime
+            {
+                get { return (int)base["MaxIdleTime"]; }
+                set { base["MaxIdleTime"] = value; }
+            }
+
+            [ConfigurationProperty("Proxy", IsRequired = true)]
+            public ProxyConfig Proxy
+            {
+                get { return (ProxyConfig)base["Proxy"]; }
+                set { base["Proxy"] = value; }
+            }
+
+            public sealed class ProxyConfig : ConfigurationElement
+            {
+                [ConfigurationProperty("Enable", IsRequired = true)]
+                public bool Enable
+                {
+                    get { return (bool)base["Enable"]; }
+                    set { base["Enable"] = value; }
+                }
+
+                [ConfigurationProperty("Url", IsRequired = true)]
+                public string Url
+                {
+                    get { return (string)base["Url"]; }
+                    set { base["Url"] = value; }
+                }
+            }
+        }
+
+        public sealed class WriteHttpConfig : ConfigurationElement
+        {
+            [ConfigurationProperty("Nodes", IsRequired = false)]
+            [ConfigurationCollection(typeof(WriteHttpNodeConfigCollection), AddItemName = "Node")]
+            public WriteHttpNodeConfigCollection Nodes
+            {
+                get { return (WriteHttpNodeConfigCollection)base["Nodes"]; }
+                set { base["Nodes"] = value; }
+            }
+        }
+        
     }
 }
 

@@ -139,6 +139,7 @@
     <Compile Include="TypesDB.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="WindowsPerformanceCounterPlugin.cs" />
+    <Compile Include="WriteHttpPlugin.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="CollectdWinService.resx">
