@@ -92,7 +92,7 @@
                       IncludeMinimum="yes"
                       OnlyDetect="no"
                       Maximum="$(var.Version)"
-                      IncludeMaximum="yes"
+                      IncludeMaximum="no"
                       Property="PREVIOUSFOUND" />
     </Upgrade>
 
