@@ -17,12 +17,12 @@ namespace BloombergFLP.CollectdWin
             var config = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
             if (config == null)
             {
-                Logger.Error("Cannot get configuration section");
+                Logger.Error("Cannot get configuration section : CollectdWinConfig");
                 return;
             }
             foreach (
                 CollectdWinConfig.PluginConfig pluginConfig in
-                    config.PluginRegistry.Cast<CollectdWinConfig.PluginConfig>()
+                    config.Plugins.Cast<CollectdWinConfig.PluginConfig>()
                         .Where(pluginConfig => pluginConfig.Enable))
             {
                 _registry[pluginConfig.Name] = pluginConfig.Class;

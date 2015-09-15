@@ -21,15 +21,15 @@ namespace BloombergFLP.CollectdWin
 
         public void Configure()
         {
-            var config = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            var config = ConfigurationManager.GetSection("WriteHttp") as WriteHttpPluginConfig;
             if (config == null)
             {
-                throw new Exception("WriteHttpPlugin - Cannot get configuration section : CollectdWinConfig");
+                throw new Exception("Cannot get configuration section : WriteHttp");
             }
 
             _httpWriters.Clear();
 
-            foreach (CollectdWinConfig.WriteHttpNodeConfig node in config.WriteHttp.Nodes)
+            foreach (WriteHttpPluginConfig.WriteHttpNodeConfig node in config.Nodes)
             {
                 var writer = new HttpWriter
                 {

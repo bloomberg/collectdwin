@@ -121,6 +121,11 @@
   <ItemGroup>
     <Compile Include="Aggregator.cs" />
     <Compile Include="AmqpPlugin.cs" />
+    <Compile Include="config\AmqpPluginConfig.cs" />
+    <Compile Include="config\CollectdWinConfig.cs" />
+    <Compile Include="config\StatsdPluginConfig.cs" />
+    <Compile Include="config\WindowsPerformanceCounterPluginConfig.cs" />
+    <Compile Include="config\WriteHttpPluginConfig.cs" />
     <Compile Include="ConsolePlugin.cs" />
     <Compile Include="Histogram.cs" />
     <Compile Include="MetricsCollector.cs" />
@@ -128,7 +133,6 @@
     <Compile Include="CollectdWinService.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="MetricsConfiguration.cs" />
     <Compile Include="PluginRegistry.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -149,6 +153,24 @@
   <ItemGroup>
     <None Include="app.config">
       <SubType>Designer</SubType>
+    </None>
+    <None Include="config\Amqp.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="config\CollectdWin.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="config\nlog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="config\Statsd.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="config\WindowsPerformanceCounter.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="config\WriteHttp.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="types.db">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
