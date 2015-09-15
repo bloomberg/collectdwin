@@ -28,21 +28,21 @@ namespace BloombergFLP.CollectdWin
 
         public void Configure()
         {
-            var config = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            var config = ConfigurationManager.GetSection("Amqp") as AmqpPluginConfig;
             if (config == null)
             {
-                throw new Exception("Cannot get configuration section : CollectdWinConfig");
+                throw new Exception("Cannot get configuration section : Amqp");
             }
 
-            string user = config.Amqp.Publish.User;
-            string password = config.Amqp.Publish.Password;
-            string host = config.Amqp.Publish.Host;
-            int port = config.Amqp.Publish.Port;
-            string vhost = config.Amqp.Publish.VirtualHost;
+            string user = config.Publish.User;
+            string password = config.Publish.Password;
+            string host = config.Publish.Host;
+            int port = config.Publish.Port;
+            string vhost = config.Publish.VirtualHost;
 
             _url = "amqp://" + user + ":" + password + "@" + host + ":" + port + "/" + vhost;
-            _exchange = config.Amqp.Publish.Exchange;
-            _routingKeyPrefix = config.Amqp.Publish.RoutingKeyPrefix;
+            _exchange = config.Publish.Exchange;
+            _routingKeyPrefix = config.Publish.RoutingKeyPrefix;
             Logger.Info("Amqp plugin configured");
         }
 

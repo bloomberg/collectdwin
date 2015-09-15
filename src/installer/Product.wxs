@@ -78,6 +78,46 @@
                             Name="$(var.ProductName)"
                             Wait="yes" />
           </Component>
+          <Directory Id="config" Name="config">
+            <Component Id="BloombergFLP.CollectdWinConfig" Guid="{9F30B0DE-2FB6-41D7-B8FC-3810C4574382}">
+              <File Id="nlog.config"
+                    Name="nlog.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\nlog.config"
+                    Vital="yes"
+                    KeyPath="yes"
+                    DiskId="1" />
+              <File Id="CollectdWin.config"
+                    Name="CollectdWin.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\CollectdWin.config"
+                    Vital="yes"
+                    KeyPath="no"
+                    DiskId="1" />
+              <File Id="Statsd.config"
+                    Name="Statsd.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\Statsd.config"
+                    Vital="yes"
+                    KeyPath="no"
+                    DiskId="1" />
+              <File Id="WindowsPerformanceCounter.config"
+                    Name="WindowsPerformanceCounter.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\WindowsPerformanceCounter.config"
+                    Vital="yes"
+                    KeyPath="no"
+                    DiskId="1" />
+              <File Id="Amqp.config"
+                    Name="Amqp.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\Amqp.config"
+                    Vital="yes"
+                    KeyPath="no"
+                    DiskId="1" />
+              <File Id="WriteHttp.config"
+                    Name="WriteHttp.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\WriteHttp.config"
+                    Vital="yes"
+                    KeyPath="no"
+                    DiskId="1" />
+            </Component>
+          </Directory>
         </Directory>
       </Directory>
     </Directory>
@@ -85,6 +125,7 @@
              Title="CollectdWinService"
              Level="1">
       <ComponentRef Id="BloombergFLP.CollectdWinService" />
+      <ComponentRef Id="BloombergFLP.CollectdWinConfig" />
     </Feature>
 
     <Upgrade Id="$(var.UpgradeCode)">

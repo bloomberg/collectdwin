@@ -30,17 +30,18 @@ namespace BloombergFLP.CollectdWin
 
         public void Configure()
         {
-            var config = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            var config =
+                ConfigurationManager.GetSection("WindowsPerformanceCounter") as WindowsPerformanceCounterPluginConfig;
             if (config == null)
             {
-                throw new Exception("Cannot get configuration section : CollectdWinConfig");
+                throw new Exception("Cannot get configuration section : WindowsPerformanceCounter");
             }
 
             _hostName = Util.GetHostName();
 
             _metrics.Clear();
 
-            foreach (CollectdWinConfig.CounterConfig counter in config.WindowsPerformanceCounters.Counters)
+            foreach (WindowsPerformanceCounterPluginConfig.CounterConfig counter in config.Counters)
             {
                 if (counter.Instance == "*")
                 {

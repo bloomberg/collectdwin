@@ -31,26 +31,26 @@ namespace BloombergFLP.CollectdWin
 
         public void Configure()
         {
-            var config = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            var config = ConfigurationManager.GetSection("Statsd") as StatsdPluginConfig;
             if (config == null)
             {
-                throw new Exception("Cannot get configuration section : CollectdWinConfig");
+                throw new Exception("Cannot get configuration section : Statsd");
             }
 
-            _port = config.Statsd.Port;
+            _port = config.Server.Port;
 
-            _delCounters = config.Statsd.DeleteCache.Counters;
-            _delTimers = config.Statsd.DeleteCache.Timers;
-            _delGauges = config.Statsd.DeleteCache.Gauges;
-            _delSets = config.Statsd.DeleteCache.Sets;
+            _delCounters = config.DeleteCache.Counters;
+            _delTimers = config.DeleteCache.Timers;
+            _delGauges = config.DeleteCache.Gauges;
+            _delSets = config.DeleteCache.Sets;
 
-            _timerLower = config.Statsd.Timer.Lower;
-            _timerUpper = config.Statsd.Timer.Upper;
-            _timerSum = config.Statsd.Timer.Sum;
-            _timerCount = config.Statsd.Timer.Count;
+            _timerLower = config.Timer.Lower;
+            _timerUpper = config.Timer.Upper;
+            _timerSum = config.Timer.Sum;
+            _timerCount = config.Timer.Count;
             _percentiles =
-                (from CollectdWinConfig.StatsdConfig.PercentileConfig percentileConfig in
-                    config.Statsd.Timer.Percentiles
+                (from StatsdPluginConfig.PercentileConfig percentileConfig in
+                    config.Timer.Percentiles
                     select percentileConfig.Value).ToArray();
 
             _statsdAggregator = new StatsdAggregator(_delCounters, _delTimers, _delGauges, _delSets, _timerLower,
