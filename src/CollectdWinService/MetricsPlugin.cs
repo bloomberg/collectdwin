@@ -75,12 +75,13 @@ namespace BloombergFLP.CollectdWin
                     dsTypes.Add(ds.Type.ToString().ToLower());
                 }
             }
+            String epochStr = Epoch.ToString(CultureInfo.InvariantCulture);
             string dsTypesStr = string.Join(",", dsTypes.ConvertAll(m => string.Format("\"{0}\"", m)).ToArray());
             string dsNamesStr = string.Join(",", dsNames.ConvertAll(m => string.Format("\"{0}\"", m)).ToArray());
             string valStr = string.Join(",", Array.ConvertAll(Values, val => val.ToString(CultureInfo.InvariantCulture)));
 
             string res = string.Format(MetricJsonFormat, HostName, PluginName,
-                PluginInstanceName, TypeName, TypeInstanceName, Epoch,
+                PluginInstanceName, TypeName, TypeInstanceName, epochStr,
                 Interval, dsTypesStr, dsNamesStr, valStr);
             return (res);
         }
