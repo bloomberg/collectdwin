@@ -85,9 +85,20 @@ namespace BloombergFLP.CollectdWin
             foreach (Metric metric in _metrics)
             {
                 var vals = new List<double>();
+                var missingInstances = new List<PerformanceCounter>();
                 foreach (PerformanceCounter ctr in metric.Counters)
                 {
-                    double val = ctr.NextValue();
+                    double val;
+                    try
+                    {
+                         val = ctr.NextValue();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // The instance is gone
+                        missingInstances.Add(ctr);
+                        continue;
+                    }
                     if (metric.ScaleUpFactor > 0)
                     {
                         val = val*metric.ScaleUpFactor;
@@ -100,6 +111,17 @@ namespace BloombergFLP.CollectdWin
                         }
                     }
                     vals.Add(val);
+                }
+
+                foreach (PerformanceCounter missingInstance in missingInstances)
+                {
+                    string logstr =
+                        string.Format(
+                            "Category:{0} - Instance:{1} - counter:{2} - ScaleUpFactor:{3} - ScaleDownFactor:{4} -  CollectdPlugin:{5} - CollectdPluginInstance:{6} - CollectdType:{7} - CollectdTypeInstance:{8}",
+                            metric.Category, metric.Instance, metric.CounterName, metric.ScaleUpFactor, metric.ScaleDownFactor, metric.CollectdPlugin, metric.CollectdPluginInstance,
+                            metric.CollectdType, metric.CollectdTypeInstance);
+                    Logger.Info("Removed Performance COUNTER : {0}", logstr);
+                    metric.Counters.Remove(missingInstance);
                 }
 
                 var metricValue = new MetricValue
