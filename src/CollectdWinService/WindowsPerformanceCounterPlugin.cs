@@ -22,6 +22,9 @@ namespace BloombergFLP.CollectdWin
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private readonly IList<Metric> _metrics;
         private string _hostName;
+        private bool _reloadConfiguration;
+        private DateTime _configurationReloadTime;
+        private int _reloadConfigurationInterval;
 
         public WindowsPerformanceCounterPlugin()
         {
@@ -36,6 +39,11 @@ namespace BloombergFLP.CollectdWin
             {
                 throw new Exception("Cannot get configuration section : WindowsPerformanceCounter");
             }
+
+            _reloadConfiguration = config.ReloadConfiguration.Enable;
+            _reloadConfigurationInterval = config.ReloadConfiguration.Interval;
+
+            _configurationReloadTime = DateTime.Now;
 
             _hostName = Util.GetHostName();
 
@@ -81,6 +89,11 @@ namespace BloombergFLP.CollectdWin
 
         public IList<MetricValue> Read()
         {
+            if (DateTime.Now > _configurationReloadTime.AddSeconds(_reloadConfigurationInterval))
+            {
+                Logger.Info("WindowsPerformanceCounter reloading configuration");
+                Configure();
+            }
             var metricValueList = new List<MetricValue>();
             foreach (Metric metric in _metrics)
             {

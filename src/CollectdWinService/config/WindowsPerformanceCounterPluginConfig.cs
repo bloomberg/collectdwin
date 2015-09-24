@@ -4,6 +4,30 @@ namespace BloombergFLP.CollectdWin
 {
     internal class WindowsPerformanceCounterPluginConfig : ConfigurationSection
     {
+        [ConfigurationProperty("ReloadConfiguration", IsRequired = true)]
+        public ReloadConfigurationConfig ReloadConfiguration
+        {
+            get { return (ReloadConfigurationConfig)base["ReloadConfiguration"]; }
+            set { base["ReloadConfiguration"] = value; }
+        }
+
+        public sealed class ReloadConfigurationConfig : ConfigurationElement
+        {
+            [ConfigurationProperty("Enable", IsRequired = true)]
+            public bool Enable
+            {
+                get { return (bool)base["Enable"]; }
+                set { base["Enable"] = value; }
+            }
+
+            [ConfigurationProperty("Interval", IsRequired = true)]
+            public int Interval
+            {
+                get { return (int)base["Interval"]; }
+                set { base["Interval"] = value; }
+            }
+        }
+
         [ConfigurationProperty("Counters", IsRequired = false)]
         [ConfigurationCollection(typeof (CounterConfigCollection), AddItemName = "Counter")]
         public CounterConfigCollection Counters
