@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Net;
+using System.Net.Sockets;
+using NLog;
 
 namespace BloombergFLP.CollectdWin
 {
     public static class Util
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         public static double GetNow()
         {
             TimeSpan t = DateTime.UtcNow - new DateTime(1970, 1, 1);
@@ -14,7 +19,16 @@ namespace BloombergFLP.CollectdWin
 
         public static string GetHostName()
         {
-            return (Environment.MachineName.ToLower());
+            string hostname = Environment.MachineName.ToLower();
+            try
+            {
+                hostname = Dns.GetHostEntry("localhost").HostName.ToLower();
+            }
+            catch (SocketException)
+            {
+                Logger.Warn("Unable to resolve hostname, using MachineName: {0}", hostname);
+            }
+            return hostname;
         }
     }
 }
