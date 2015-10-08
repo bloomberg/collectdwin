@@ -20,7 +20,7 @@ def usage(parser) :
 def main( ) : 
     VERSION_FILE    = 'src\CollectdWinService\Properties\AssemblyInfo.cs'
     VERSION_FORMAT  = "{0}.{1}.{2}.{3}"
-    VERSION_PATTERN = '^\[assembly: AssemblyVersion\(\"(\d).(\d).(\d).(\d)\"\)\]'
+    VERSION_PATTERN = '^\[assembly: AssemblyVersion\(\"(\d+).(\d+).(\d+).(\d+)\"\)\]'
     REPLACE_PATTERN = r"(^\[assembly: Assembly.*Version\(\").*(\"\)\])"
     REPLACE_FORMAT  = r"\g<1>{0}\g<2>"
 
