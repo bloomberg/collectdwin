@@ -192,14 +192,14 @@ namespace BloombergFLP.CollectdWin
                 {
                     HttpWebResponse exceptionResponse = (HttpWebResponse)ex.Response;
 
-                    using (var stream = exceptionResponse.GetResponseStream())
-                    using (var reader = new StreamReader(stream))
+                    Logger.Error("Got web exception in http post : {0} - {1}",
+                            (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);
+
+                    if (!Logger.IsTraceEnabled)
                     {
-                        Logger.Error("Got web exception in http post : {0} - {1}",
-                            (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);  
-                        
                         // Skip overhead of trace body read 
-                        if (!Logger.IsTraceEnabled) 
+                        using (var stream = exceptionResponse.GetResponseStream())
+                        using (var reader = new StreamReader(stream))
                         {
                             string errorBody = reader.ReadToEnd();
                             if (errorBody != null)
