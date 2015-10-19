@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
@@ -44,6 +44,19 @@ namespace BloombergFLP.CollectdWin
                 {
                     writer.WebProxy = node.Proxy.Url.Length > 0 ? new WebProxy(node.Proxy.Url) : new WebProxy();
                 }
+
+                if (node.UserName != null && node.Password != null)
+                {
+                    /* Possibly misfeature- adding BasicAuthHeaderData to HttpWriter class to efficiently support basic auth,
+                     * but saves the ToBase64String string encode on each request. Better, but more expensive, would be
+                     * to put both on as secure strings and add a config param to support other auth methods while
+                     * building the HttpWebResponse on each call. @FerventGeek */ 
+                    writer.BasicAuthHeaderData = System.Convert.ToBase64String(
+                        System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(node.UserName + ":" + node.Password));
+                }
+
+                writer.UseSafeNames = node.UseSafeNames;
+
                 _httpWriters.Add(writer);
             }
 
@@ -78,19 +91,30 @@ namespace BloombergFLP.CollectdWin
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+        private const string SAFE_NAME_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.:-_";
+        
         public int BatchSize = 20;
         public bool EnableProxy = false;
         public int MaxIdleTime;
         public int Timeout;
         public string Url;
         public WebProxy WebProxy = null;
+        public string BasicAuthHeaderData = null;
+        public bool UseSafeNames = false;
 
         private StringBuilder _batchedMetricStr;
         private int _numMetrics;
 
         public void Write(MetricValue metric)
         {
+            // See notes in SafeifyName()
+            if (UseSafeNames)
+            {
+                metric.PluginInstanceName = SafeifyName(metric.PluginInstanceName);
+            }
+            
             string message = metric.GetMetricJsonStr();
+            
             if (_batchedMetricStr == null)
             {
                 _batchedMetricStr = new StringBuilder("[").Append(message);
@@ -124,7 +148,7 @@ namespace BloombergFLP.CollectdWin
                 request.Accept = "*/*";
                 request.KeepAlive = true;
                 request.Timeout = Timeout;
-
+ 
                 if (EnableProxy)
                 {
                     request.Proxy = WebProxy;
@@ -133,6 +157,10 @@ namespace BloombergFLP.CollectdWin
                 {
                     request.ServicePoint.MaxIdleTime = MaxIdleTime;
                 }
+                if (BasicAuthHeaderData != null)
+                {
+                    request.Headers.Add("Authorization", "Basic " + BasicAuthHeaderData);
+                }
 
                 // Display service point properties. 
                 Logger.Trace("Connection properties: ServicePoint - HashCode:{0}, MaxIdleTime:{1}, IdleSince:{2}",
@@ -140,25 +168,55 @@ namespace BloombergFLP.CollectdWin
 
                 using (Stream reqStream = request.GetRequestStream())
                 {
+                    if (Logger.IsTraceEnabled)
+                    {
+                        Logger.Trace("Adding request body : {0}", metricJsonStr);
+                    }
+                    
                     reqStream.Write(data, 0, data.Length);
                 }
 
                 response = (HttpWebResponse) request.GetResponse();
-                var statusCode = (int) response.StatusCode;
-                if (statusCode < 200 || statusCode >= 300)
+
+                // Skip overhead of the trace body read
+                if (Logger.IsTraceEnabled) 
                 {
-                    Logger.Error("Got a bad response code : ", statusCode);
+                    Stream respStream = response.GetResponseStream();
+                    string responseString = new StreamReader(respStream).ReadToEnd();
+                    Logger.Trace("Got response: {0}" + responseString);
                 }
+            }
+            catch (WebException ex)
+            {
+                if (ex.Status == WebExceptionStatus.ProtocolError)
+                {
+                    HttpWebResponse exceptionResponse = (HttpWebResponse)ex.Response;
 
-                if (!Logger.IsTraceEnabled) return;
-
-                Stream respStream = response.GetResponseStream();
-                string responseString = new StreamReader(respStream).ReadToEnd();
-                Logger.Trace("Got response: " + responseString);
+                    using (var stream = exceptionResponse.GetResponseStream())
+                    using (var reader = new StreamReader(stream))
+                    {
+                        Logger.Error("Got web exception in http post : {0} - {1}",
+                            (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);  
+                        
+                        // Skip overhead of trace body read 
+                        if (!Logger.IsTraceEnabled) 
+                        {
+                            string errorBody = reader.ReadToEnd();
+                            if (errorBody != null)
+                            {
+                                Logger.Error(errorBody);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.Error("Got web exception in http post : {0}", ex.ToString());
+                }
             }
             catch (Exception exp)
             {
-                Logger.Error("Got exception in http post : ", exp);
+                Logger.Error("Got exception in http post : {0}", exp);
             }
             finally
             {
@@ -167,6 +225,29 @@ namespace BloombergFLP.CollectdWin
                     response.Close();
                 }
             }
+        }
+
+        private string SafeifyName(string text)
+        {
+            /* Some receivers balk on brackets and other characters common on InstanceNames
+             * in Windows systems.  Check against a subset of URL safe characters and replace
+             * with underscores. Regex would be cleaner but slower. Will save for
+             * configurable re-write feature later. @FerventGeek */
+            
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in text)
+            {
+                if (SAFE_NAME_CHARS.IndexOf(c) > -1)
+                {
+                    sb.Append(c);
+                }
+                else
+                {
+                    sb.Append('_');
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }
