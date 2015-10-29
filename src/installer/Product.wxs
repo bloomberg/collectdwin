@@ -2,12 +2,11 @@
 
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
-  <?if $(var.Platform) = x64 ?>
-  <?define ProductName = "CollectdWinService (64 bit)" ?>
+  <?define ProductName = "CollectdWinService" ?>
+  <?if $(var.Platform) = x64 ?>  
   <?define Win64 = "yes" ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
-  <?else ?>
-  <?define ProductName = "CollectdWinService (32 bit)" ?>
+  <?else ?>  
   <?define Win64 = "no" ?>
   <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
   <?endif ?>
@@ -21,6 +20,8 @@
            Version="$(var.Version)"
            Language="1033">
     <Package InstallerVersion="200"
+             InstallScope="perMachine"
+             InstallPrivileges="elevated"
              Compressed="yes" />
     <Media Id="1"
            Cabinet="media1.cab"
