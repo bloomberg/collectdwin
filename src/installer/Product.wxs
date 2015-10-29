@@ -3,10 +3,12 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
   <?define ProductName = "CollectdWinService" ?>
-  <?if $(var.Platform) = x64 ?>  
+  <?define Manufacturer = "Bloomberg LP" ?>
+  <?define ManufacturerID = "Bloomberg_LP" ?>
+  <?if $(var.Platform) = x64 ?>
   <?define Win64 = "yes" ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
-  <?else ?>  
+  <?else ?>
   <?define Win64 = "no" ?>
   <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
   <?endif ?>
@@ -16,7 +18,7 @@
   <Product Name="$(var.ProductName)"
            Id="*"
            UpgradeCode="$(var.UpgradeCode)"
-           Manufacturer="Bloomberg LP"
+           Manufacturer="$(var.Manufacturer)"
            Version="$(var.Version)"
            Language="1033">
     <Package InstallerVersion="200"
@@ -29,95 +31,97 @@
     <Directory Id="TARGETDIR"
                Name="SourceDir">
       <Directory Id="$(var.PlatformProgramFilesFolder)">
-        <Directory Id="CollectdWin"
-                   Name="CollectdWin">
-          <Component Id="BloombergFLP.CollectdWinService"
-                     Guid="{59727D06-40F4-4510-800E-8D224A652627}">
-            <File Id="CollectdWinService.exe"
-                  Name="CollectdWinService.exe"
-                  Source="..\CollectdWinService\bin\$(var.Platform)\Debug\CollectdWinService.exe"
-                  Vital="yes"
-                  KeyPath="yes"
-                  DiskId="1" />
-            <File Id="NLog.dll"
-                  Name="NLog.dll"
-                  Source="..\..\third-party\NLog.dll"
-                  Vital="yes"
-                  KeyPath="no"
-                  DiskId="1" />
-            <File Id="RabbitMQ.Client.dll"
-                  Name="RabbitMQ.Client.dll"
-                  Source="..\..\third-party\RabbitMQ.Client.dll"
-                  Vital="yes"
-                  KeyPath="no"
-                  DiskId="1" />
-            <File Id="types.db"
-                  Name="types.db"
-                  Source="..\CollectdWinService\bin\$(var.Platform)\Debug\types.db"
-                  Vital="yes"
-                  KeyPath="no"
-                  DiskId="1" />
-            <File Id="CollectdWinService.exe.config"
-                  Name="CollectdWinService.exe.config"
-                  Source="..\CollectdWinService\bin\$(var.Platform)\Debug\CollectdWinService.exe.config"
-                  Vital="yes"
-                  KeyPath="no"
-                  DiskId="1" />
-            <ServiceInstall Id="ServiceInstaller"
-                            Type="ownProcess"
-                            Vital="yes"
-                            Name="$(var.ProductName)"
-                            DisplayName="$(var.ProductName)"
-                            Description="$(var.ProductName)"
-                            Start="auto"
-                            Account="LocalSystem"
-                            ErrorControl="ignore"
-                            Interactive="no" />
-            <ServiceControl Id="StartService"
-                            Stop="both"
-                            Remove="uninstall"
-                            Name="$(var.ProductName)"
-                            Wait="yes" />
-          </Component>
-          <Directory Id="config" Name="config">
-            <Component Id="BloombergFLP.CollectdWinConfig" Guid="{9F30B0DE-2FB6-41D7-B8FC-3810C4574382}">
-              <File Id="nlog.config"
-                    Name="nlog.config"
-                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\nlog.config"
+        <Directory Id="$(var.ManufacturerID)" Name="$(var.Manufacturer)">
+          <Directory Id="CollectdWin"
+                     Name="CollectdWin">
+            <Component Id="BloombergFLP.CollectdWinService"
+                       Guid="{59727D06-40F4-4510-800E-8D224A652627}">
+              <File Id="CollectdWinService.exe"
+                    Name="CollectdWinService.exe"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\CollectdWinService.exe"
                     Vital="yes"
                     KeyPath="yes"
                     DiskId="1" />
-              <File Id="CollectdWin.config"
-                    Name="CollectdWin.config"
-                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\CollectdWin.config"
+              <File Id="NLog.dll"
+                    Name="NLog.dll"
+                    Source="..\..\third-party\NLog.dll"
                     Vital="yes"
                     KeyPath="no"
                     DiskId="1" />
-              <File Id="Statsd.config"
-                    Name="Statsd.config"
-                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\Statsd.config"
+              <File Id="RabbitMQ.Client.dll"
+                    Name="RabbitMQ.Client.dll"
+                    Source="..\..\third-party\RabbitMQ.Client.dll"
                     Vital="yes"
                     KeyPath="no"
                     DiskId="1" />
-              <File Id="WindowsPerformanceCounter.config"
-                    Name="WindowsPerformanceCounter.config"
-                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\WindowsPerformanceCounter.config"
+              <File Id="types.db"
+                    Name="types.db"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\types.db"
                     Vital="yes"
                     KeyPath="no"
                     DiskId="1" />
-              <File Id="Amqp.config"
-                    Name="Amqp.config"
-                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\Amqp.config"
+              <File Id="CollectdWinService.exe.config"
+                    Name="CollectdWinService.exe.config"
+                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\CollectdWinService.exe.config"
                     Vital="yes"
                     KeyPath="no"
                     DiskId="1" />
-              <File Id="WriteHttp.config"
-                    Name="WriteHttp.config"
-                    Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\WriteHttp.config"
-                    Vital="yes"
-                    KeyPath="no"
-                    DiskId="1" />
+              <ServiceInstall Id="ServiceInstaller"
+                              Type="ownProcess"
+                              Vital="yes"
+                              Name="$(var.ProductName)"
+                              DisplayName="$(var.ProductName)"
+                              Description="$(var.ProductName)"
+                              Start="auto"
+                              Account="LocalSystem"
+                              ErrorControl="ignore"
+                              Interactive="no" />
+              <ServiceControl Id="StartService"
+                              Stop="both"
+                              Remove="uninstall"
+                              Name="$(var.ProductName)"
+                              Wait="yes" />
             </Component>
+            <Directory Id="config" Name="config">
+              <Component Id="BloombergFLP.CollectdWinConfig" Guid="{9F30B0DE-2FB6-41D7-B8FC-3810C4574382}">
+                <File Id="nlog.config"
+                      Name="nlog.config"
+                      Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\nlog.config"
+                      Vital="yes"
+                      KeyPath="yes"
+                      DiskId="1" />
+                <File Id="CollectdWin.config"
+                      Name="CollectdWin.config"
+                      Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\CollectdWin.config"
+                      Vital="yes"
+                      KeyPath="no"
+                      DiskId="1" />
+                <File Id="Statsd.config"
+                      Name="Statsd.config"
+                      Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\Statsd.config"
+                      Vital="yes"
+                      KeyPath="no"
+                      DiskId="1" />
+                <File Id="WindowsPerformanceCounter.config"
+                      Name="WindowsPerformanceCounter.config"
+                      Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\WindowsPerformanceCounter.config"
+                      Vital="yes"
+                      KeyPath="no"
+                      DiskId="1" />
+                <File Id="Amqp.config"
+                      Name="Amqp.config"
+                      Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\Amqp.config"
+                      Vital="yes"
+                      KeyPath="no"
+                      DiskId="1" />
+                <File Id="WriteHttp.config"
+                      Name="WriteHttp.config"
+                      Source="..\CollectdWinService\bin\$(var.Platform)\Debug\config\WriteHttp.config"
+                      Vital="yes"
+                      KeyPath="no"
+                      DiskId="1" />
+              </Component>
+            </Directory>
           </Directory>
         </Directory>
       </Directory>
