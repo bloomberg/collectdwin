@@ -124,7 +124,7 @@ namespace BloombergFLP.CollectdWin
 
         public void Write(MetricValue metric)
         {
-            // See notes in SafeifyName()
+            // Optoinal Regex replace of unsafe chars
             if (SafeCharsRegex != null)
             {
                 metric.PluginInstanceName = SafeCharsRegex.Replace(metric.PluginInstanceName, ReplaceWith);
@@ -174,6 +174,7 @@ namespace BloombergFLP.CollectdWin
                 {
                     request.ServicePoint.MaxIdleTime = MaxIdleTime;
                 }
+                // Optional do BasicAuth for POST
                 if (BasicAuthHeaderData != null)
                 {
                     request.Headers.Add("Authorization", "Basic " + BasicAuthHeaderData);
