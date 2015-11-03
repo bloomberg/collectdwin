@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using NLog;
+using System.Text.RegularExpressions;
 
 namespace BloombergFLP.CollectdWin
 {
@@ -53,9 +54,26 @@ namespace BloombergFLP.CollectdWin
                      * building the HttpWebResponse on each call. @FerventGeek */ 
                     writer.BasicAuthHeaderData = System.Convert.ToBase64String(
                         System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(node.UserName + ":" + node.Password));
+                    Logger.Info("Using BasicAuth for node {0}, user {1}", node.Name, node.UserName);
                 }
 
-                writer.UseSafeNames = node.UseSafeNames;
+                if (node.SafeCharsRegex != null)
+                {
+                    // compile for perfomace, since config is only loaded on start
+                    writer.SafeCharsRegex = new Regex("[^" + node.SafeCharsRegex + "]", RegexOptions.Compiled);
+                    Logger.Info("Using SafeChars for node {0}, regex \"{1}\" replaced with \"{2}\"",
+                        node.Name, writer.SafeCharsRegex.ToString(), node.ReplaceWith);
+                }
+
+                if (node.ReplaceWith == null)
+                {
+                    // default, strip unsafe chars
+                    writer.ReplaceWith = "";
+                }
+                else
+                {
+                    writer.ReplaceWith = node.ReplaceWith;
+                }
 
                 _httpWriters.Add(writer);
             }
@@ -90,8 +108,6 @@ namespace BloombergFLP.CollectdWin
     internal class HttpWriter
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
-        private const string SAFE_NAME_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.:-_";
         
         public int BatchSize = 20;
         public bool EnableProxy = false;
@@ -100,7 +116,8 @@ namespace BloombergFLP.CollectdWin
         public string Url;
         public WebProxy WebProxy = null;
         public string BasicAuthHeaderData = null;
-        public bool UseSafeNames = false;
+        public Regex SafeCharsRegex = null;
+        public string ReplaceWith = null;
 
         private StringBuilder _batchedMetricStr;
         private int _numMetrics;
@@ -108,9 +125,9 @@ namespace BloombergFLP.CollectdWin
         public void Write(MetricValue metric)
         {
             // See notes in SafeifyName()
-            if (UseSafeNames)
+            if (SafeCharsRegex != null)
             {
-                metric.PluginInstanceName = SafeifyName(metric.PluginInstanceName);
+                metric.PluginInstanceName = SafeCharsRegex.Replace(metric.PluginInstanceName, ReplaceWith);
             }
             
             string message = metric.GetMetricJsonStr();
@@ -183,7 +200,8 @@ namespace BloombergFLP.CollectdWin
                 {
                     Stream respStream = response.GetResponseStream();
                     string responseString = new StreamReader(respStream).ReadToEnd();
-                    Logger.Trace("Got response: {0}" + responseString);
+                    Logger.Trace("Got response : {0} - {1} : {2}",
+                        (int)response.StatusCode, response.StatusCode, responseString);
                 }
             }
             catch (WebException ex)
@@ -195,7 +213,7 @@ namespace BloombergFLP.CollectdWin
                     Logger.Error("Got web exception in http post : {0} - {1}",
                             (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);
 
-                    if (!Logger.IsTraceEnabled)
+                    if (Logger.IsTraceEnabled)
                     {
                         // Skip overhead of trace body read 
                         using (var stream = exceptionResponse.GetResponseStream())
@@ -204,7 +222,7 @@ namespace BloombergFLP.CollectdWin
                             string errorBody = reader.ReadToEnd();
                             if (errorBody != null)
                             {
-                                Logger.Error(errorBody);
+                                Logger.Trace(errorBody);
                             }
                         }
                     }
@@ -225,29 +243,6 @@ namespace BloombergFLP.CollectdWin
                     response.Close();
                 }
             }
-        }
-
-        private string SafeifyName(string text)
-        {
-            /* Some receivers balk on brackets and other characters common on InstanceNames
-             * in Windows systems.  Check against a subset of URL safe characters and replace
-             * with underscores. Regex would be cleaner but slower. Will save for
-             * configurable re-write feature later. @FerventGeek */
-            
-            StringBuilder sb = new StringBuilder();
-            foreach (char c in text)
-            {
-                if (SAFE_NAME_CHARS.IndexOf(c) > -1)
-                {
-                    sb.Append(c);
-                }
-                else
-                {
-                    sb.Append('_');
-                }
-            }
-
-            return sb.ToString();
         }
     }
 }
