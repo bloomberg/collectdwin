@@ -1,116 +1,247 @@
+using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
+using System.Net;
+using System.Text;
+using NLog;
+using System.Text.RegularExpressions;
 
 namespace BloombergFLP.CollectdWin
 {
-    internal class WriteHttpPluginConfig : ConfigurationSection
+    internal class WriteHttpPlugin : IMetricsWritePlugin
     {
-        [ConfigurationProperty("Nodes", IsRequired = false)]
-        [ConfigurationCollection(typeof (WriteHttpNodeConfigCollection), AddItemName = "Node")]
-        public WriteHttpNodeConfigCollection Nodes
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        private readonly IList<HttpWriter> _httpWriters;
+
+        public WriteHttpPlugin()
         {
-            get { return (WriteHttpNodeConfigCollection) base["Nodes"]; }
-            set { base["Nodes"] = value; }
+            _httpWriters = new List<HttpWriter>();
         }
 
-        public static WriteHttpPluginConfig GetConfig()
+        public void Configure()
         {
-            return (WriteHttpPluginConfig) ConfigurationManager.GetSection("WriteHttp") ?? new WriteHttpPluginConfig();
-        }
-
-        public sealed class WriteHttpNodeConfig : ConfigurationElement
-        {
-            [ConfigurationProperty("Name", IsRequired = true)]
-            public string Name
+            var config = ConfigurationManager.GetSection("WriteHttp") as WriteHttpPluginConfig;
+            if (config == null)
             {
-                get { return (string) base["Name"]; }
-                set { base["Name"] = value; }
+                throw new Exception("Cannot get configuration section : WriteHttp");
             }
 
-            [ConfigurationProperty("Url", IsRequired = true)]
-            public string Url
-            {
-                get { return (string) base["Url"]; }
-                set { base["Url"] = value; }
-            }
+            _httpWriters.Clear();
 
-            [ConfigurationProperty("Timeout", IsRequired = true)]
-            public int Timeout
+            foreach (WriteHttpPluginConfig.WriteHttpNodeConfig node in config.Nodes)
             {
-                get { return (int) base["Timeout"]; }
-                set { base["Timeout"] = value; }
-            }
-
-            [ConfigurationProperty("BatchSize", IsRequired = true)]
-            public int BatchSize
-            {
-                get { return (int) base["BatchSize"]; }
-                set { base["BatchSize"] = value; }
-            }
-
-            [ConfigurationProperty("MaxIdleTime", IsRequired = false)]
-            public int MaxIdleTime
-            {
-                get { return (int) base["MaxIdleTime"]; }
-                set { base["MaxIdleTime"] = value; }
-            }
-
-            [ConfigurationProperty("UserName", IsRequired = false)]
-            public string UserName
-            {
-                get { return (string)base["UserName"]; }
-                set { base["UserName"] = value; }
-            }
-
-            [ConfigurationProperty("Password", IsRequired = false)]
-            public string Password
-            {
-                get { return (string)base["Password"]; }
-                set { base["Password"] = value; }
-            }
-
-            [ConfigurationProperty("UseSafeNames", IsRequired = false)]
-            public bool UseSafeNames
-            {
-                get { return (bool)base["UseSafeNames"]; }
-                set { base["UseSafeNames"] = value; }
-            }
-
-            [ConfigurationProperty("Proxy", IsRequired = true)]
-            public ProxyConfig Proxy
-            {
-                get { return (ProxyConfig) base["Proxy"]; }
-                set { base["Proxy"] = value; }
-            }
-
-            public sealed class ProxyConfig : ConfigurationElement
-            {
-                [ConfigurationProperty("Enable", IsRequired = true)]
-                public bool Enable
+                var writer = new HttpWriter
                 {
-                    get { return (bool) base["Enable"]; }
-                    set { base["Enable"] = value; }
+                    Url = node.Url,
+                    Timeout = node.Timeout,
+                    BatchSize = node.BatchSize,
+                    MaxIdleTime = node.MaxIdleTime,
+                    EnableProxy = node.Proxy.Enable
+                };
+
+                if (writer.EnableProxy)
+                {
+                    writer.WebProxy = node.Proxy.Url.Length > 0 ? new WebProxy(node.Proxy.Url) : new WebProxy();
                 }
 
-                [ConfigurationProperty("Url", IsRequired = true)]
-                public string Url
+                if (node.UserName != null && node.Password != null)
                 {
-                    get { return (string) base["Url"]; }
-                    set { base["Url"] = value; }
+                    /* Possibly misfeature- adding BasicAuthHeaderData to HttpWriter class to efficiently support basic auth,
+                     * but saves the ToBase64String string encode on each request. Better, but more expensive, would be
+                     * to put both on as secure strings and add a config param to support other auth methods while
+                     * building the HttpWebResponse on each call. @FerventGeek */ 
+                    writer.BasicAuthHeaderData = System.Convert.ToBase64String(
+                        System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(node.UserName + ":" + node.Password));
+                    Logger.Info("Using BasicAuth for node {0}, user {1}", node.Name, node.UserName);
                 }
+
+                if (node.SafeCharsRegex != null)
+                {
+                    // compile for perfomace, since config is only loaded on start
+                    writer.SafeCharsRegex = new Regex("[^" + node.SafeCharsRegex + "]", RegexOptions.Compiled);
+                    Logger.Info("Using SafeChars for node {0}, regex \"{1}\" replaced with \"{2}\"",
+                        node.Name, writer.SafeCharsRegex.ToString(), node.ReplaceWith);
+                }
+
+                if (node.ReplaceWith == null)
+                {
+                    // default, strip unsafe chars
+                    writer.ReplaceWith = "";
+                }
+                else
+                {
+                    writer.ReplaceWith = node.ReplaceWith;
+                }
+
+                _httpWriters.Add(writer);
             }
+
+            Logger.Info("WriteHttp plugin configured");
         }
 
-        public sealed class WriteHttpNodeConfigCollection : ConfigurationElementCollection
+        public void Start()
         {
-            protected override ConfigurationElement CreateNewElement()
-            {
-                return new WriteHttpNodeConfig();
-            }
+            Logger.Info("WriteHttp - plugin started");
+        }
 
-            protected override object GetElementKey(ConfigurationElement element)
+        public void Stop()
+        {
+            Logger.Info("WriteHttp - plugin stopped");
+        }
+
+        public void Write(MetricValue metric)
+        {
+            if (metric == null)
             {
-                var nodeConfig = (WriteHttpNodeConfig) element;
-                return (nodeConfig.Name);
+                Logger.Debug("write() - Invalid null metric");
+                return;
+            }
+            foreach (HttpWriter writer in _httpWriters)
+            {
+                writer.Write(metric);
+            }
+        }
+    }
+
+    internal class HttpWriter
+    {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        
+        public int BatchSize = 20;
+        public bool EnableProxy = false;
+        public int MaxIdleTime;
+        public int Timeout;
+        public string Url;
+        public WebProxy WebProxy = null;
+        public string BasicAuthHeaderData = null;
+        public Regex SafeCharsRegex = null;
+        public string ReplaceWith = null;
+
+        private StringBuilder _batchedMetricStr;
+        private int _numMetrics;
+
+        public void Write(MetricValue metric)
+        {
+            // See notes in SafeifyName()
+            if (SafeCharsRegex != null)
+            {
+                metric.PluginInstanceName = SafeCharsRegex.Replace(metric.PluginInstanceName, ReplaceWith);
+            }
+            
+            string message = metric.GetMetricJsonStr();
+            
+            if (_batchedMetricStr == null)
+            {
+                _batchedMetricStr = new StringBuilder("[").Append(message);
+            }
+            else
+            {
+                _batchedMetricStr.Append(",").Append(message);
+            }
+            _numMetrics++;
+
+            if (_numMetrics < BatchSize) return;
+
+            _batchedMetricStr.Append("]");
+            HttpPost(_batchedMetricStr.ToString());
+            _batchedMetricStr = null;
+            _numMetrics = 0;
+        }
+
+        public void HttpPost(string metricJsonStr)
+        {
+            HttpWebResponse response = null;
+            try
+            {
+                byte[] data = Encoding.UTF8.GetBytes(metricJsonStr);
+                var request = (HttpWebRequest) WebRequest.Create(Url);
+
+                request.Method = "POST";
+                request.ContentType = "application/json";
+                request.ContentLength = data.Length;
+                request.UserAgent = "CollectdWin/1.0";
+                request.Accept = "*/*";
+                request.KeepAlive = true;
+                request.Timeout = Timeout;
+ 
+                if (EnableProxy)
+                {
+                    request.Proxy = WebProxy;
+                }
+                if (MaxIdleTime > 0)
+                {
+                    request.ServicePoint.MaxIdleTime = MaxIdleTime;
+                }
+                if (BasicAuthHeaderData != null)
+                {
+                    request.Headers.Add("Authorization", "Basic " + BasicAuthHeaderData);
+                }
+
+                // Display service point properties. 
+                Logger.Trace("Connection properties: ServicePoint - HashCode:{0}, MaxIdleTime:{1}, IdleSince:{2}",
+                    request.ServicePoint.GetHashCode(), request.ServicePoint.MaxIdleTime, request.ServicePoint.IdleSince);
+
+                using (Stream reqStream = request.GetRequestStream())
+                {
+                    if (Logger.IsTraceEnabled)
+                    {
+                        Logger.Trace("Adding request body : {0}", metricJsonStr);
+                    }
+                    
+                    reqStream.Write(data, 0, data.Length);
+                }
+
+                response = (HttpWebResponse) request.GetResponse();
+
+                // Skip overhead of the trace body read
+                if (Logger.IsTraceEnabled) 
+                {
+                    Stream respStream = response.GetResponseStream();
+                    string responseString = new StreamReader(respStream).ReadToEnd();
+                    Logger.Trace("Got response : {0} - {1} : {2}",
+                        (int)response.StatusCode, response.StatusCode, responseString);
+                }
+            }
+            catch (WebException ex)
+            {
+                if (ex.Status == WebExceptionStatus.ProtocolError)
+                {
+                    HttpWebResponse exceptionResponse = (HttpWebResponse)ex.Response;
+
+                    Logger.Error("Got web exception in http post : {0} - {1}",
+                            (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);
+
+                    if (Logger.IsTraceEnabled)
+                    {
+                        // Skip overhead of trace body read 
+                        using (var stream = exceptionResponse.GetResponseStream())
+                        using (var reader = new StreamReader(stream))
+                        {
+                            string errorBody = reader.ReadToEnd();
+                            if (errorBody != null)
+                            {
+                                Logger.Trace(errorBody);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.Error("Got web exception in http post : {0}", ex.ToString());
+                }
+            }
+            catch (Exception exp)
+            {
+                Logger.Error("Got exception in http post : {0}", exp);
+            }
+            finally
+            {
+                if (response != null)
+                {
+                    response.Close();
+                }
             }
         }
     }
