@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -116,9 +116,10 @@ namespace BloombergFLP.CollectdWin
 
             foreach (string line in lines)
             {
-                if (line.StartsWith("#"))
+                // skip comments and blank lines
+                if (line.StartsWith("#") || line.Trim() == string.Empty)
                 {
-                    continue;
+                    continue; 
                 }
                 Match match = dataSetRegex.Match(line);
                 if (match.Groups.Count < 3)

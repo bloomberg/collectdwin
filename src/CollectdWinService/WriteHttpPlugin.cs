@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net;
 using System.Text;
 using NLog;
+using System.Text.RegularExpressions;
 
 namespace BloombergFLP.CollectdWin
 {
@@ -44,6 +45,36 @@ namespace BloombergFLP.CollectdWin
                 {
                     writer.WebProxy = node.Proxy.Url.Length > 0 ? new WebProxy(node.Proxy.Url) : new WebProxy();
                 }
+
+                if (node.UserName != null && node.Password != null)
+                {
+                    /* Possibly misfeature- adding BasicAuthHeaderData to HttpWriter class to efficiently support basic auth,
+                     * but saves the ToBase64String string encode on each request. Better, but more expensive, would be
+                     * to put both on as secure strings and add a config param to support other auth methods while
+                     * building the HttpWebResponse on each call. @FerventGeek */ 
+                    writer.BasicAuthHeaderData = System.Convert.ToBase64String(
+                        System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(node.UserName + ":" + node.Password));
+                    Logger.Info("Using BasicAuth for node {0}, user {1}", node.Name, node.UserName);
+                }
+
+                if (node.SafeCharsRegex != null)
+                {
+                    // compile for perfomace, since config is only loaded on start
+                    writer.SafeCharsRegex = new Regex("[^" + node.SafeCharsRegex + "]", RegexOptions.Compiled);
+                    Logger.Info("Using SafeChars for node {0}, regex \"{1}\" replaced with \"{2}\"",
+                        node.Name, writer.SafeCharsRegex.ToString(), node.ReplaceWith);
+                }
+
+                if (node.ReplaceWith == null)
+                {
+                    // default, strip unsafe chars
+                    writer.ReplaceWith = "";
+                }
+                else
+                {
+                    writer.ReplaceWith = node.ReplaceWith;
+                }
+
                 _httpWriters.Add(writer);
             }
 
@@ -77,20 +108,30 @@ namespace BloombergFLP.CollectdWin
     internal class HttpWriter
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-
+        
         public int BatchSize = 20;
         public bool EnableProxy = false;
         public int MaxIdleTime;
         public int Timeout;
         public string Url;
         public WebProxy WebProxy = null;
+        public string BasicAuthHeaderData = null;
+        public Regex SafeCharsRegex = null;
+        public string ReplaceWith = null;
 
         private StringBuilder _batchedMetricStr;
         private int _numMetrics;
 
         public void Write(MetricValue metric)
         {
+            // Optoinal Regex replace of unsafe chars
+            if (SafeCharsRegex != null)
+            {
+                metric.PluginInstanceName = SafeCharsRegex.Replace(metric.PluginInstanceName, ReplaceWith);
+            }
+            
             string message = metric.GetMetricJsonStr();
+            
             if (_batchedMetricStr == null)
             {
                 _batchedMetricStr = new StringBuilder("[").Append(message);
@@ -124,7 +165,7 @@ namespace BloombergFLP.CollectdWin
                 request.Accept = "*/*";
                 request.KeepAlive = true;
                 request.Timeout = Timeout;
-
+ 
                 if (EnableProxy)
                 {
                     request.Proxy = WebProxy;
@@ -133,6 +174,11 @@ namespace BloombergFLP.CollectdWin
                 {
                     request.ServicePoint.MaxIdleTime = MaxIdleTime;
                 }
+                // Optional do BasicAuth for POST
+                if (BasicAuthHeaderData != null)
+                {
+                    request.Headers.Add("Authorization", "Basic " + BasicAuthHeaderData);
+                }
 
                 // Display service point properties. 
                 Logger.Trace("Connection properties: ServicePoint - HashCode:{0}, MaxIdleTime:{1}, IdleSince:{2}",
@@ -140,25 +186,56 @@ namespace BloombergFLP.CollectdWin
 
                 using (Stream reqStream = request.GetRequestStream())
                 {
+                    if (Logger.IsTraceEnabled)
+                    {
+                        Logger.Trace("Adding request body : {0}", metricJsonStr);
+                    }
+                    
                     reqStream.Write(data, 0, data.Length);
                 }
 
                 response = (HttpWebResponse) request.GetResponse();
-                var statusCode = (int) response.StatusCode;
-                if (statusCode < 200 || statusCode >= 300)
+
+                // Skip overhead of the trace body read
+                if (Logger.IsTraceEnabled) 
                 {
-                    Logger.Error("Got a bad response code : ", statusCode);
+                    Stream respStream = response.GetResponseStream();
+                    string responseString = new StreamReader(respStream).ReadToEnd();
+                    Logger.Trace("Got response : {0} - {1} : {2}",
+                        (int)response.StatusCode, response.StatusCode, responseString);
                 }
+            }
+            catch (WebException ex)
+            {
+                if (ex.Status == WebExceptionStatus.ProtocolError)
+                {
+                    HttpWebResponse exceptionResponse = (HttpWebResponse)ex.Response;
 
-                if (!Logger.IsTraceEnabled) return;
+                    Logger.Error("Got web exception in http post : {0} - {1}",
+                            (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);
 
-                Stream respStream = response.GetResponseStream();
-                string responseString = new StreamReader(respStream).ReadToEnd();
-                Logger.Trace("Got response: " + responseString);
+                    if (Logger.IsTraceEnabled)
+                    {
+                        // Skip overhead of trace body read 
+                        using (var stream = exceptionResponse.GetResponseStream())
+                        using (var reader = new StreamReader(stream))
+                        {
+                            string errorBody = reader.ReadToEnd();
+                            if (errorBody != null)
+                            {
+                                Logger.Trace(errorBody);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.Error("Got web exception in http post : {0}", ex.ToString());
+                }
             }
             catch (Exception exp)
             {
-                Logger.Error("Got exception in http post : ", exp);
+                Logger.Error("Got exception in http post : {0}", exp);
             }
             finally
             {

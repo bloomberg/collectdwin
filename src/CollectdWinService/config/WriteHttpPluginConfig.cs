@@ -1,4 +1,4 @@
-﻿using System.Configuration;
+using System.Configuration;
 
 namespace BloombergFLP.CollectdWin
 {
@@ -52,6 +52,34 @@ namespace BloombergFLP.CollectdWin
             {
                 get { return (int) base["MaxIdleTime"]; }
                 set { base["MaxIdleTime"] = value; }
+            }
+
+            [ConfigurationProperty("UserName", IsRequired = false)]
+            public string UserName
+            {
+                get { return (string)base["UserName"]; }
+                set { base["UserName"] = value; }
+            }
+
+            [ConfigurationProperty("Password", IsRequired = false)]
+            public string Password
+            {
+                get { return (string)base["Password"]; }
+                set { base["Password"] = value; }
+            }
+
+            [ConfigurationProperty("SafeCharsRegex", IsRequired = false)]
+            public string SafeCharsRegex
+            {
+                get { return (string)base["SafeCharsRegex"]; }
+                set { base["SafeCharsRegex"] = value; }
+            }
+
+            [ConfigurationProperty("ReplaceWith", IsRequired = false)]
+            public string ReplaceWith
+            {
+                get { return (string)base["ReplaceWith"]; }
+                set { base["ReplaceWith"] = value; }
             }
 
             [ConfigurationProperty("Proxy", IsRequired = true)]
