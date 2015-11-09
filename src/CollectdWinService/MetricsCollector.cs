@@ -150,6 +150,7 @@ namespace BloombergFLP.CollectdWin
         private void WriteThreadProc()
         {
             Logger.Trace("WriteThreadProc() begin");
+            bool needToFlush = false;
             while (_runWriteThread)
             {
                 try
@@ -164,6 +165,7 @@ namespace BloombergFLP.CollectdWin
                         }
                         if (metricValue != null)
                         {
+                            needToFlush = true;
                             metricValue.Interval = _interval;
 
                             _aggregator.Aggregate(ref metricValue);
@@ -180,13 +182,17 @@ namespace BloombergFLP.CollectdWin
                             }
                         }
                     }
-                    foreach (IMetricsPlugin plugin in _plugins)
+                    if (needToFlush)
                     {
-                        var writePlugin = plugin as IMetricsWritePlugin;
-                        if (writePlugin != null)
+                        needToFlush = false;
+                        foreach (IMetricsPlugin plugin in _plugins)
                         {
-                            // flush only if it is a Write plugin                    
-                            writePlugin.Flush();
+                            var writePlugin = plugin as IMetricsWritePlugin;
+                            if (writePlugin != null)
+                            {
+                                // flush only if it is a Write plugin                    
+                                writePlugin.Flush();
+                            }
                         }
                     }
                     if (_metricValueQueue.Count <= 0)

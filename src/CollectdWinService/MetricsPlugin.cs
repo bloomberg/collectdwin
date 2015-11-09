@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using NLog;
+using System.Text.RegularExpressions;
 
 namespace BloombergFLP.CollectdWin
 {
@@ -59,6 +60,15 @@ namespace BloombergFLP.CollectdWin
             return (other);
         }
 
+        public string EscapeString(string str)
+        {
+            if (string.IsNullOrEmpty(str))
+            {
+                return (str);
+            }
+            return (Regex.Escape(str));
+        }
+
         public string GetMetricJsonStr()
         {
             IList<DataSource> dsList = DataSetCollection.Instance.GetDataSource(TypeName);
@@ -82,7 +92,7 @@ namespace BloombergFLP.CollectdWin
             string valStr = string.Join(",", Array.ConvertAll(Values, val => val.ToString(CultureInfo.InvariantCulture)));
 
             string res = string.Format(MetricJsonFormat, HostName, PluginName,
-                PluginInstanceName, TypeName, TypeInstanceName, epochStr,
+                EscapeString(PluginInstanceName), TypeName, EscapeString(TypeInstanceName), epochStr,
                 Interval, dsTypesStr, dsNamesStr, valStr);
             return (res);
         }
