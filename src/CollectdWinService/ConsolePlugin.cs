@@ -26,6 +26,11 @@ namespace BloombergFLP.CollectdWin
         {
             Console.WriteLine("ConsolePlugin: {0}", metric.GetMetricJsonStr());
         }
+
+        public void Flush()
+        {
+            Console.WriteLine("ConsolePlugin: flushing");
+        }
     }
 }
 
