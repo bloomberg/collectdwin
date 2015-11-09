@@ -66,7 +66,7 @@ namespace BloombergFLP.CollectdWin
             {
                 return (str);
             }
-            return (Regex.Escape(str));
+            return (str.Replace(@"\", @"\\"));
         }
 
         public string GetMetricJsonStr()
