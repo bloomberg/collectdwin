@@ -46,7 +46,7 @@ namespace BloombergFLP.CollectdWin
                     writer.WebProxy = node.Proxy.Url.Length > 0 ? new WebProxy(node.Proxy.Url) : new WebProxy();
                 }
 
-                if (node.UserName != null && node.Password != null)
+                if (!string.IsNullOrEmpty(node.UserName) && !string.IsNullOrEmpty(node.Password))                
                 {
                     /* Possibly misfeature- adding BasicAuthHeaderData to HttpWriter class to efficiently support basic auth,
                      * but saves the ToBase64String string encode on each request. Better, but more expensive, would be
@@ -56,8 +56,8 @@ namespace BloombergFLP.CollectdWin
                         System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(node.UserName + ":" + node.Password));
                     Logger.Info("Using BasicAuth for node {0}, user {1}", node.Name, node.UserName);
                 }
-
-                if (node.SafeCharsRegex != null)
+                
+                if (!string.IsNullOrEmpty(node.SafeCharsRegex))
                 {
                     // compile for perfomace, since config is only loaded on start
                     writer.SafeCharsRegex = new Regex("[^" + node.SafeCharsRegex + "]", RegexOptions.Compiled);
@@ -79,6 +79,14 @@ namespace BloombergFLP.CollectdWin
             }
 
             Logger.Info("WriteHttp plugin configured");
+        }
+
+        public void Flush()
+        {
+            foreach (HttpWriter writer in _httpWriters)
+            {
+                writer.Flush();
+            }
         }
 
         public void Start()
@@ -122,6 +130,17 @@ namespace BloombergFLP.CollectdWin
         private StringBuilder _batchedMetricStr;
         private int _numMetrics;
 
+        private void publish()
+        {
+            if (_batchedMetricStr != null)
+            {
+                _batchedMetricStr.Append("]");
+                HttpPost(_batchedMetricStr.ToString());
+                _batchedMetricStr = null;
+                _numMetrics = 0;
+            }
+        }
+
         public void Write(MetricValue metric)
         {
             // Optoinal Regex replace of unsafe chars
@@ -144,10 +163,12 @@ namespace BloombergFLP.CollectdWin
 
             if (_numMetrics < BatchSize) return;
 
-            _batchedMetricStr.Append("]");
-            HttpPost(_batchedMetricStr.ToString());
-            _batchedMetricStr = null;
-            _numMetrics = 0;
+            publish();            
+        }
+
+        public void Flush()
+        {
+            publish();
         }
 
         public void HttpPost(string metricJsonStr)

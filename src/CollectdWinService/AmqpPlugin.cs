@@ -84,6 +84,11 @@ namespace BloombergFLP.CollectdWin
             }
         }
 
+        public void Flush()
+        {
+            Logger.Trace("Amqp plugin flushing");
+        }
+
         public void StartConnection()
         {
             double now = Util.GetNow();

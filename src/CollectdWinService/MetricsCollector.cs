@@ -180,7 +180,19 @@ namespace BloombergFLP.CollectdWin
                             }
                         }
                     }
-                    Thread.Sleep(_interval*1000);
+                    foreach (IMetricsPlugin plugin in _plugins)
+                    {
+                        var writePlugin = plugin as IMetricsWritePlugin;
+                        if (writePlugin != null)
+                        {
+                            // flush only if it is a Write plugin                    
+                            writePlugin.Flush();
+                        }
+                    }
+                    if (_metricValueQueue.Count <= 0)
+                    {
+                        Thread.Sleep(1000);
+                    }
                 }
                 catch (Exception exp)
                 {

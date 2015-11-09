@@ -20,6 +20,7 @@ namespace BloombergFLP.CollectdWin
     internal interface IMetricsWritePlugin : IMetricsPlugin
     {
         void Write(MetricValue metric);
+        void Flush();
     }
 
     internal class MetricValue
