@@ -1,8 +1,7 @@
 # Change Log
 
-## [Unreleased](https://github.com/bloomberg/collectdwin/tree/HEAD)
-
-[Full Changelog](https://github.com/bloomberg/collectdwin/compare/v0.5.3...HEAD)
+## [v0.5.8](https://github.com/bloomberg/collectdwin/tree/v0.5.8) (2015-11-11)
+[Full Changelog](https://github.com/bloomberg/collectdwin/compare/v0.5.3...v0.5.8)
 
 **Closed issues:**
 
