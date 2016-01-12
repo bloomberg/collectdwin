@@ -28,6 +28,9 @@
     <Media Id="1"
            Cabinet="media1.cab"
            EmbedCab="yes" />
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  AllowDowngrades="yes"
+                  AllowSameVersionUpgrades="no" />
     <Directory Id="TARGETDIR"
                Name="SourceDir">
       <Directory Id="$(var.PlatformProgramFilesFolder)">
@@ -132,19 +135,6 @@
       <ComponentRef Id="BloombergFLP.CollectdWinService" />
       <ComponentRef Id="BloombergFLP.CollectdWinConfig" />
     </Feature>
-
-    <Upgrade Id="$(var.UpgradeCode)">
-      <UpgradeVersion Minimum="0.1.0"
-                      IncludeMinimum="yes"
-                      OnlyDetect="no"
-                      Maximum="$(var.Version)"
-                      IncludeMaximum="no"
-                      Property="PREVIOUSFOUND" />
-    </Upgrade>
-
-    <InstallExecuteSequence>
-      <RemoveExistingProducts After="InstallValidate" />
-    </InstallExecuteSequence>
 
   </Product>
 </Wix>
