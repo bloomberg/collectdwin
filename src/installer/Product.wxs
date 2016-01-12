@@ -28,7 +28,7 @@
     <Media Id="1"
            Cabinet="media1.cab"
            EmbedCab="yes" />
-    <majorUpgrade Schedule="afterInstallInitialize"
+    <MajorUpgrade Schedule="afterInstallInitialize"
                   AllowDowngrades="yes"
                   AllowSameVersionUpgrades="no" />
     <Directory Id="TARGETDIR"
@@ -135,10 +135,6 @@
       <ComponentRef Id="BloombergFLP.CollectdWinService" />
       <ComponentRef Id="BloombergFLP.CollectdWinConfig" />
     </Feature>
-
-    <InstallExecuteSequence>
-      <RemoveExistingProducts After="InstallValidate" />
-    </InstallExecuteSequence>
 
   </Product>
 </Wix>
