@@ -129,6 +129,7 @@ namespace BloombergFLP.CollectdWin
 
         private StringBuilder _batchedMetricStr;
         private int _numMetrics;
+        private int _numSequentialHttpFailures = 0;
 
         private void publish()
         {
@@ -143,7 +144,7 @@ namespace BloombergFLP.CollectdWin
 
         public void Write(MetricValue metric)
         {
-            // Optoinal Regex replace of unsafe chars
+            // Optional Regex replace of unsafe chars
             if (SafeCharsRegex != null)
             {
                 metric.PluginInstanceName = SafeCharsRegex.Replace(metric.PluginInstanceName, ReplaceWith);
@@ -225,14 +226,20 @@ namespace BloombergFLP.CollectdWin
                     Logger.Trace("Got response : {0} - {1} : {2}",
                         (int)response.StatusCode, response.StatusCode, responseString);
                 }
+                _numSequentialHttpFailures = 0;
             }
             catch (WebException ex)
             {
+                _numSequentialHttpFailures += 1;
+
+                const int errThreshold = 3;
+                LogLevel logLevel = _numSequentialHttpFailures > errThreshold ? LogLevel.Error 
+                                                                              : LogLevel.Warn;
                 if (ex.Status == WebExceptionStatus.ProtocolError)
                 {
                     HttpWebResponse exceptionResponse = (HttpWebResponse)ex.Response;
 
-                    Logger.Error("Got web exception in http post : {0} - {1}",
+                    Logger.Log(logLevel, "Got web exception in http post : {0} - {1}",
                             (int)exceptionResponse.StatusCode, exceptionResponse.StatusCode);
 
                     if (Logger.IsTraceEnabled)
@@ -251,7 +258,7 @@ namespace BloombergFLP.CollectdWin
                 }
                 else
                 {
-                    Logger.Error("Got web exception in http post : {0}", ex.ToString());
+                    Logger.Log(logLevel, "Got web exception in http post : {0}", ex.ToString());
                 }
             }
             catch (Exception exp)
