@@ -213,7 +213,7 @@ namespace BloombergFLP.CollectdWin
                 else
                 {
                     var metricValue = getMetricValue(vals);
-                    if (CollectdPluginInstance == null)
+                    if (CollectdPluginInstance == null || CollectdPluginInstance == String.Empty)
                         metricValue.PluginInstanceName = metricRetriver.Instance;
                     metricValueList.Add(metricValue);
                 }
@@ -367,7 +367,7 @@ namespace BloombergFLP.CollectdWin
                 }
 
                 var metricValue = getMetricValue(average);
-                if (CollectdPluginInstance == null)
+                if (CollectdPluginInstance == null || CollectdPluginInstance == String.Empty)
                     metricValue.PluginInstanceName = metricRetriver.Instance;
 
                 metricValueList.Add(metricValue);
