@@ -46,6 +46,13 @@ namespace BloombergFLP.CollectdWin
 
         public sealed class CounterConfig : ConfigurationElement
         {
+            [ConfigurationProperty("GeneratorClass", IsRequired = false, DefaultValue = "BloombergFLP.CollectdWin.PerformanceCounterMetricGenerator")]
+            public string GeneratorClass
+            {
+                get { return (string)base["GeneratorClass"]; }
+                set { base["GeneratorClass"] = value; }
+            }
+
             [ConfigurationProperty("Category", IsRequired = true)]
             public string Category
             {
@@ -66,6 +73,13 @@ namespace BloombergFLP.CollectdWin
             {
                 get { return (string) base["Instance"]; }
                 set { base["Instance"] = value; }
+            }
+
+            [ConfigurationProperty("AverageIntervals", IsRequired = false)]
+            public string AverageIntervals
+            {
+                get { return (string)base["AverageIntervals"]; }
+                set { base["AverageIntervals"] = value; }
             }
 
             [ConfigurationProperty("CollectdPlugin", IsRequired = true)]
@@ -95,20 +109,6 @@ namespace BloombergFLP.CollectdWin
                 get { return (string) base["CollectdTypeInstance"]; }
                 set { base["CollectdTypeInstance"] = value; }
             }
-
-            [ConfigurationProperty("ScaleUpFactor", IsRequired = false)]
-            public uint ScaleUpFactor
-            {
-                get { return (uint) base["ScaleUpFactor"]; }
-                set { base["ScaleUpFactor"] = value; }
-            }
-
-            [ConfigurationProperty("ScaleDownFactor", IsRequired = false)]
-            public uint ScaleDownFactor
-            {
-                get { return (uint) base["ScaleDownFactor"]; }
-                set { base["ScaleDownFactor"] = value; }
-            }
         }
 
         public sealed class CounterConfigCollection : ConfigurationElementCollection
@@ -121,7 +121,7 @@ namespace BloombergFLP.CollectdWin
             protected override object GetElementKey(ConfigurationElement element)
             {
                 var counterConfig = (CounterConfig) element;
-                return (counterConfig.Category + "_" + counterConfig.Name + "_" + counterConfig.Instance);
+                return (counterConfig.CollectdPlugin + "_" + counterConfig.CollectdPluginInstance + "_" + counterConfig.CollectdType + "_" + counterConfig.CollectdTypeInstance);
             }
         }
     }
