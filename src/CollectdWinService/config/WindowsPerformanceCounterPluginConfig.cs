@@ -46,11 +46,18 @@ namespace BloombergFLP.CollectdWin
 
         public sealed class CounterConfig : ConfigurationElement
         {
-            [ConfigurationProperty("GeneratorClass", IsRequired = false, DefaultValue = "BloombergFLP.CollectdWin.PerformanceCounterMetricGenerator")]
-            public string GeneratorClass
+            [ConfigurationProperty("Transformer", IsRequired = false, DefaultValue = "")]
+            public string Transformer
             {
-                get { return (string)base["GeneratorClass"]; }
-                set { base["GeneratorClass"] = value; }
+                get { return (string)base["Transformer"]; }
+                set { base["Transformer"] = value; }
+            }
+
+            [ConfigurationProperty("TransformerParameters", IsRequired = false)]
+            public string TransformerParameters
+            {
+                get { return (string)base["TransformerParameters"]; }
+                set { base["TransformerParameters"] = value; }
             }
 
             [ConfigurationProperty("Category", IsRequired = true)]
@@ -73,13 +80,6 @@ namespace BloombergFLP.CollectdWin
             {
                 get { return (string) base["Instance"]; }
                 set { base["Instance"] = value; }
-            }
-
-            [ConfigurationProperty("AverageIntervals", IsRequired = false)]
-            public string AverageIntervals
-            {
-                get { return (string)base["AverageIntervals"]; }
-                set { base["AverageIntervals"] = value; }
             }
 
             [ConfigurationProperty("CollectdPlugin", IsRequired = true)]

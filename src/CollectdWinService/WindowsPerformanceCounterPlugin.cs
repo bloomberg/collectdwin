@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Timers;
+using System.Reflection;
 using Microsoft.VisualBasic.Devices;
 using NLog;
 
@@ -11,28 +12,35 @@ namespace BloombergFLP.CollectdWin
     internal class Helper
     {
         public delegate double TransformFunction(double value);
-
-        public static double TotalPhysicalMemoryInBytes = new ComputerInfo().TotalPhysicalMemory;
-        public static double FromMBytesToBytes(double value) { return value * 1024 * 1024; }
-        public static double PercentFromFreeSpaceToUsedSpace(double value) { return 100 - value; }
-        public static double FromAvailableBytesToUsedMemoryPercent(double value)
-        {
-            return (TotalPhysicalMemoryInBytes - value) * 100 / TotalPhysicalMemoryInBytes;
-        }
-
-        public static List<MetricValue> Transform(List<MetricValue> values, TransformFunction functor)
-        {
-            foreach (MetricValue value in values)
-                for(int i=0; i < value.Values.Length; ++i)
-                    value.Values[i] = functor(value.Values[i]);
-            return values;
-        }
-
         public static string DictionaryValue(Dictionary<string, object> dict, string key)
         {
             return dict.ContainsKey(key) ? dict[key] as string : null;
         }
+        public static double TotalPhysicalMemoryInBytes = new ComputerInfo().TotalPhysicalMemory;
 
+        // conversion function group
+        public static double _ConvertFromMegaBytesToBytes(double value) { return value * 1024 * 1024; }
+        public static double _ConvertFromPercentageToRemainingPercentage(double value) { return 100 - value; }
+        public static double _ConvertFromMemoryAvailableBytesToUsedPercentage(double value)
+        {
+            return (TotalPhysicalMemoryInBytes - value) * 100 / TotalPhysicalMemoryInBytes;
+        }
+
+        // generator creatation function group
+        public static PerformanceCounterGenerator _Create()
+        {
+            return new PerformanceCounterMetricGenerator();
+        }
+
+        public static PerformanceCounterGenerator _CreateAverage()
+        {
+            return new AveragesGenerator();
+        }
+
+        public static PerformanceCounterGenerator _CreateCountInstances()
+        {
+            return new PerformanceCounterCategoryInstancesGenerator();
+        }
     }
 
     internal interface IMetricGenerator
@@ -47,6 +55,7 @@ namespace BloombergFLP.CollectdWin
         static protected readonly Logger Logger = LogManager.GetCurrentClassLogger();
         public string CounterCategory, CounterName, CounterInstance;
         public string CollectdPlugin, CollectdPluginInstance, CollectdType, CollectdTypeInstance;
+        protected Helper.TransformFunction _transform;
     
         public virtual bool Configure(Dictionary<string, object> config)
         {
@@ -57,12 +66,22 @@ namespace BloombergFLP.CollectdWin
             CollectdPluginInstance = Helper.DictionaryValue(config, "CollectdPluginInstance");
             CollectdType = Helper.DictionaryValue(config, "CollectdType");
             CollectdTypeInstance = Helper.DictionaryValue(config, "CollectdTypeInstance");
+
+            string transformer = Helper.DictionaryValue(config, "Transformer");
+            if (transformer != null)
+            {
+                MethodInfo transformMethodInfo = typeof(Helper).GetMethod("_ConvertFrom" + transformer);
+                if (transformMethodInfo != null)
+                {
+                    _transform = (Helper.TransformFunction)Delegate.CreateDelegate(typeof(Helper.TransformFunction), transformMethodInfo);
+                }
+            }
             return true;
         }
 
         public abstract List<MetricValue> NextValues();
 
-        public MetricValue getMetricValue(List<double> vals)
+        public MetricValue GetMetricValue(List<double> vals)
         {
             var metricValue = new MetricValue
             {
@@ -79,7 +98,6 @@ namespace BloombergFLP.CollectdWin
             metricValue.Epoch = Math.Round(epoch, 3);
             return metricValue;
         }
-
     }
 
     internal class PerformanceCounterCategoryInstancesGenerator : PerformanceCounterGenerator
@@ -107,7 +125,7 @@ namespace BloombergFLP.CollectdWin
             var metricValueList = new List<MetricValue>();
             var vals = new List<double>();
             vals.Add(_performanceCounterCategory.GetInstanceNames().Length);
-            metricValueList.Add(getMetricValue(vals));
+            metricValueList.Add(GetMetricValue(vals));
             return metricValueList;
         }
     }
@@ -119,7 +137,7 @@ namespace BloombergFLP.CollectdWin
             // indicate the real instance when PerformanceCounterMetricGenerator.CounterInstance='*'
             public string Instance;
             public IList<PerformanceCounter> Counters;
-            public List<double> Retrive()
+            public List<double> Retrive(Helper.TransformFunction transform)
             {
                 var vals = new List<double>();
                 foreach (PerformanceCounter counter in Counters)
@@ -128,6 +146,8 @@ namespace BloombergFLP.CollectdWin
                     try
                     {
                         val = counter.NextValue();
+                        if (transform != null)
+                            val = transform.Invoke(val);
                     }
                     catch (InvalidOperationException)
                     {
@@ -193,9 +213,7 @@ namespace BloombergFLP.CollectdWin
 
         public override bool Configure(Dictionary<string, object> config)
         {
-            if (!base.Configure(config))
-                return false;
-            return Refresh();
+            return base.Configure(config) && Refresh();
         }
 
         public override List<MetricValue> NextValues()
@@ -204,7 +222,7 @@ namespace BloombergFLP.CollectdWin
             var missingInstances = new List<MetricRetriever>();
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
             {
-                var vals = metricRetriver.Retrive();
+                var vals = metricRetriver.Retrive(_transform);
                 if (vals == null)
                 {
                     // The instance is gone
@@ -212,7 +230,7 @@ namespace BloombergFLP.CollectdWin
                 }
                 else
                 {
-                    var metricValue = getMetricValue(vals);
+                    var metricValue = GetMetricValue(vals);
                     if (CollectdPluginInstance == null || CollectdPluginInstance == String.Empty)
                         metricValue.PluginInstanceName = metricRetriver.Instance;
                     metricValueList.Add(metricValue);
@@ -232,30 +250,6 @@ namespace BloombergFLP.CollectdWin
             }
 
             return metricValueList;
-        }
-    }
-
-    internal class LogicalDiskFreeBytesGenerator : PerformanceCounterMetricGenerator
-    {
-        public override List<MetricValue> NextValues()
-        {
-            return Helper.Transform(base.NextValues(), Helper.FromMBytesToBytes);
-        }
-    }
-
-    internal class LogicalDiskUsedSpacePercentGenerator : PerformanceCounterMetricGenerator
-    {
-        public override List<MetricValue> NextValues()
-        {
-            return Helper.Transform(base.NextValues(), Helper.PercentFromFreeSpaceToUsedSpace);
-        }
-    }
-
-    internal class UsedMemoryPercentGenerator : PerformanceCounterMetricGenerator
-    {
-        public override List<MetricValue> NextValues()
-        {
-            return Helper.Transform(base.NextValues(), Helper.FromAvailableBytesToUsedMemoryPercent);
         }
     }
 
@@ -283,7 +277,7 @@ namespace BloombergFLP.CollectdWin
             List<List<double>> sample = new List<List<double>>();
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
             {
-                var vals = metricRetriver.Retrive();
+                var vals = metricRetriver.Retrive(_transform);
                 if (vals != null)
                     sample.Add(vals);
             }
@@ -302,7 +296,7 @@ namespace BloombergFLP.CollectdWin
         {
             if (!base.Configure(config))
                 return false;
-            string averageIntervals = Helper.DictionaryValue(config, "AverageIntervals");
+            string averageIntervals = Helper.DictionaryValue(config, "TransformerParameters");
             if (averageIntervals == null)
                 return false;
             string[] averagesInString = averageIntervals.Split(',');
@@ -366,7 +360,7 @@ namespace BloombergFLP.CollectdWin
                         average.Add(s / sampleList.Count);
                 }
 
-                var metricValue = getMetricValue(average);
+                var metricValue = GetMetricValue(average);
                 if (CollectdPluginInstance == null || CollectdPluginInstance == String.Empty)
                     metricValue.PluginInstanceName = metricRetriver.Instance;
 
@@ -408,13 +402,18 @@ namespace BloombergFLP.CollectdWin
             foreach (WindowsPerformanceCounterPluginConfig.CounterConfig counter in config.Counters)
             {
                 // create the IMetricGenerator object based on GeneratorClass
-                Type classType = Type.GetType(counter.GeneratorClass);
-                if (classType == null)
+                //Get the method information using the method info class
+                MethodInfo createMethodInfo = typeof(Helper).GetMethod("_Create" + counter.Transformer);
+                IMetricGenerator metricGenerator;
+                if (createMethodInfo != null)
                 {
-                    Logger.Error("Cannot create metric generator class:{0}", counter.GeneratorClass);
-                    continue;
+                    metricGenerator = (IMetricGenerator) createMethodInfo.Invoke(null, null);
                 }
-                var metricGenerator = (IMetricGenerator) Activator.CreateInstance(classType);
+                else
+                {
+                    // cannot find method for creating metric generator, use the default one
+                    metricGenerator = Helper._Create();
+                }
                 // configure the object based on the properties
                 Dictionary<string, object> parameters = new Dictionary<string, object>();
                 foreach (PropertyInformation property in counter.ElementInformation.Properties)
