@@ -4,14 +4,14 @@ namespace BloombergFLP.CollectdWin
 {
     internal class WindowsPerformanceCounterPluginConfig : ConfigurationSection
     {
-        [ConfigurationProperty("ReloadConfiguration", IsRequired = true)]
-        public ReloadConfigurationConfig ReloadConfiguration
+        [ConfigurationProperty("RefreshInstancesConfiguration", IsRequired = true)]
+        public RefreshInstancesConfigurationConfig RefreshInstancesConfiguration
         {
-            get { return (ReloadConfigurationConfig)base["ReloadConfiguration"]; }
-            set { base["ReloadConfiguration"] = value; }
+            get { return (RefreshInstancesConfigurationConfig)base["RefreshInstancesConfiguration"]; }
+            set { base["RefreshInstancesConfiguration"] = value; }
         }
 
-        public sealed class ReloadConfigurationConfig : ConfigurationElement
+        public sealed class RefreshInstancesConfigurationConfig : ConfigurationElement
         {
             [ConfigurationProperty("Enable", IsRequired = true)]
             public bool Enable

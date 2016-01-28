@@ -46,6 +46,7 @@ namespace BloombergFLP.CollectdWin
     internal interface IMetricGenerator
     {
         bool Configure(Dictionary<string, object> config);
+        bool Refresh();
         List<MetricValue> NextValues();
     }
 
@@ -76,6 +77,11 @@ namespace BloombergFLP.CollectdWin
                     _transform = (Helper.TransformFunction)Delegate.CreateDelegate(typeof(Helper.TransformFunction), transformMethodInfo);
                 }
             }
+            return true;
+        }
+
+        public virtual bool Refresh()
+        {
             return true;
         }
 
@@ -161,6 +167,15 @@ namespace BloombergFLP.CollectdWin
 
         public IList<MetricRetriever> MetricRetrievers;
 
+        private bool ExistInstance(string instance)
+        {
+            foreach(MetricRetriever retriever in MetricRetrievers)
+                if (instance == null && retriever.Instance == null
+                    || instance == retriever.Instance)
+                    return true;
+            return false;
+        }
+
         private MetricRetriever GetMetricRetriever(string category, string names, string instance)
         {
             string logstr =
@@ -184,24 +199,28 @@ namespace BloombergFLP.CollectdWin
             }
         }
 
-        public bool Refresh()
+        public override bool Refresh()
         {
-            MetricRetrievers = new List<MetricRetriever>();
+            if (MetricRetrievers == null)
+                MetricRetrievers = new List<MetricRetriever>();
             if (CounterInstance != null && CounterInstance == "*")
             {
                 var cat = new PerformanceCounterCategory(CounterCategory);
                 string[] instances = cat.GetInstanceNames();
                 foreach (string instance in instances)
                 {
-                    MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, instance);
-                    if (metricRetriver == null)
-                        return false;
-                    // Replace collectd_plugin_instance with the Instance got from counter
-                    metricRetriver.Instance = instance;
-                    MetricRetrievers.Add(metricRetriver);
+                    if (!ExistInstance(instance))
+                    {
+                        MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, instance);
+                        if (metricRetriver == null)
+                            return false;
+                        // Replace collectd_plugin_instance with the Instance got from counter
+                        metricRetriver.Instance = instance;
+                        MetricRetrievers.Add(metricRetriver);
+                    }
                 }
             }
-            else
+            else if (MetricRetrievers.Count == 0)
             {
                 MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, CounterInstance);
                 if (metricRetriver == null)
@@ -292,6 +311,13 @@ namespace BloombergFLP.CollectdWin
             _mutex.ReleaseMutex();
         }
 
+        public override bool Refresh()
+        {
+            if (MetricRetrievers == null || MetricRetrievers.Count == 0)
+                base.Refresh();
+            return true;
+        }
+
         public override bool Configure(Dictionary<string, object> config)
         {
             if (!base.Configure(config))
@@ -375,9 +401,9 @@ namespace BloombergFLP.CollectdWin
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private readonly IList<IMetricGenerator> _metricGenerators;
-        private bool _reloadConfiguration;
-        private DateTime _configurationReloadTime;
-        private int _reloadConfigurationInterval;
+        private bool _refreshConfiguration;
+        private DateTime _instanceRefreshTime;
+        private int _refreshConfigurationInterval;
 
         public WindowsPerformanceCounterPlugin()
         {
@@ -393,10 +419,10 @@ namespace BloombergFLP.CollectdWin
                 throw new Exception("Cannot get configuration section : WindowsPerformanceCounter");
             }
 
-            _reloadConfiguration = config.ReloadConfiguration.Enable;
-            _reloadConfigurationInterval = config.ReloadConfiguration.Interval;
+            _refreshConfiguration = config.RefreshInstancesConfiguration.Enable;
+            _refreshConfigurationInterval = config.RefreshInstancesConfiguration.Interval;
 
-            _configurationReloadTime = DateTime.Now;
+            _instanceRefreshTime = DateTime.Now;
 
             _metricGenerators.Clear();
             foreach (WindowsPerformanceCounterPluginConfig.CounterConfig counter in config.Counters)
@@ -443,10 +469,13 @@ namespace BloombergFLP.CollectdWin
 
         public IList<MetricValue> Read()
         {
-            if (DateTime.Now > _configurationReloadTime.AddSeconds(_reloadConfigurationInterval))
+            if (DateTime.Now > _instanceRefreshTime.AddSeconds(_refreshConfigurationInterval))
             {
                 Logger.Info("WindowsPerformanceCounter reloading configuration");
-                Configure();
+                foreach (IMetricGenerator metricGenerator in _metricGenerators)
+                {
+                    metricGenerator.Refresh();
+                }
             }
             var metricValueList = new List<MetricValue>();
             foreach (IMetricGenerator metricGenerator in _metricGenerators)
