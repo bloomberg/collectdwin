@@ -276,7 +276,7 @@ namespace BloombergFLP.CollectdWin
     {
         public List<uint> AverageIntervalsInSeconds = new List<uint>();
         public uint MaxIntervalInSeconds;
-        public List<List<List<double>>> _samples;
+        public List<List<List<double>>> _samples; // 3-D array of [MetricRetrievers, Seconds, ValuesOfEachCounterName]
         private System.Threading.Mutex _mutex = new System.Threading.Mutex(); // protect _samples
         private Timer _timer = new Timer(1000);
 
@@ -294,19 +294,21 @@ namespace BloombergFLP.CollectdWin
         {
             // get a sample for each of MetricRetrievers
             List<List<double>> sample = new List<List<double>>();
+            // each sample is an array of [MetricRetrievers, ValuesOfEachCounterName]
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
             {
                 var vals = metricRetriver.Retrive(_transform);
                 if (vals != null)
                     sample.Add(vals);
             }
+            // add the "sample" into "_samples"
             _mutex.WaitOne();
             for(int i = 0; i < sample.Count; ++i)
             {
                 List<List<double>> sampleList = _samples[i];
-                sampleList.Add(sample[i]);
+                sampleList.Insert(0, sample[i]);
                 if (sampleList.Count > MaxIntervalInSeconds)
-                    sampleList.RemoveAt(0);
+                    sampleList.RemoveAt(sampleList.Count-1);
             }
             _mutex.ReleaseMutex();
         }
@@ -335,13 +337,15 @@ namespace BloombergFLP.CollectdWin
             }
             if (AverageIntervalsInSeconds.Count == 0)
                 return false;
+            // TODO: support unsorted average values
+            // sort is not necessary now. NextValues() can only return a sorted average values ascendantly
             AverageIntervalsInSeconds.Sort();
             MaxIntervalInSeconds = AverageIntervalsInSeconds[AverageIntervalsInSeconds.Count-1];
             // init _samples
             _samples = new List<List<List<double>>>();
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
                 _samples.Add(new List<List<double>>());
-                // take the first sample
+            // take the first sample
             TakeSample();
             // set up sampling timer
             _timer.Elapsed += (sender, e) => OnTakeSample(sender, e, this); ;
@@ -354,6 +358,7 @@ namespace BloombergFLP.CollectdWin
         {
             var metricValueList = new List<MetricValue>();
             _mutex.WaitOne();
+            // the average values are saved in a fatten list of [Average values of each MetricRetriever]
             int i = 0;
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
             {
