@@ -41,6 +41,11 @@ namespace BloombergFLP.CollectdWin
         {
             return new PerformanceCounterCategoryInstancesGenerator();
         }
+
+        public static PerformanceCounterGenerator _CreateCountProcessesAndThreads()
+        {
+            return new CountProcessesAndThreadsGenerator();
+        }
     }
 
     internal interface IMetricGenerator
@@ -108,7 +113,7 @@ namespace BloombergFLP.CollectdWin
 
     internal class PerformanceCounterCategoryInstancesGenerator : PerformanceCounterGenerator
     {
-        private PerformanceCounterCategory _performanceCounterCategory;
+        protected PerformanceCounterCategory _performanceCounterCategory;
 
         public override bool Configure(Dictionary<string, object> config)
         {
@@ -131,6 +136,41 @@ namespace BloombergFLP.CollectdWin
             var metricValueList = new List<MetricValue>();
             var vals = new List<double>();
             vals.Add(_performanceCounterCategory.GetInstanceNames().Length);
+            metricValueList.Add(GetMetricValue(vals));
+            return metricValueList;
+        }
+    }
+
+    internal class CountProcessesAndThreadsGenerator : PerformanceCounterCategoryInstancesGenerator
+    {
+        protected PerformanceCounter _threadNumberCounter;
+
+        public override bool Configure(Dictionary<string, object> config)
+        {
+            string category = "Process";
+            string name = "Thread Count";
+            string instance = "_Total";
+            config["Category"] = category;
+            if (!base.Configure(config))
+                return false;
+            try
+            {
+                _threadNumberCounter = new PerformanceCounter(category, name, instance);
+                return true;
+            }
+            catch (Exception exp)
+            {
+                Logger.Error("Got exception : {0}, while adding performance counter: {1},{2},{3}", exp, category, name, instance);
+                return false;
+            }
+        }
+
+        public override List<MetricValue> NextValues()
+        {
+            var metricValueList = new List<MetricValue>();
+            var vals = new List<double>();
+            vals.Add(_performanceCounterCategory.GetInstanceNames().Length);
+            vals.Add(_threadNumberCounter.NextValue());
             metricValueList.Add(GetMetricValue(vals));
             return metricValueList;
         }
