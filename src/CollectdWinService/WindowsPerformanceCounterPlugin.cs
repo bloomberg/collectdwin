@@ -442,8 +442,8 @@ namespace BloombergFLP.CollectdWin
                 }
                 else
                 {
-                    // cannot find method for creating metric generator, use the default one
-                    metricGenerator = Helper._Create();
+                    Logger.Error("Cannot find method for creating metric generator:{0}", counter);
+                    continue;
                 }
                 // configure the object based on the properties
                 Dictionary<string, object> parameters = new Dictionary<string, object>();
