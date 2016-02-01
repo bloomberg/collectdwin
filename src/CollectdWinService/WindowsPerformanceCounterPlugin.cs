@@ -32,7 +32,7 @@ namespace BloombergFLP.CollectdWin
             return new PerformanceCounterMetricGenerator();
         }
 
-        public static PerformanceCounterGenerator _CreateAverage()
+        public static PerformanceCounterGenerator _CreateAverages()
         {
             return new AveragesGenerator();
         }
@@ -482,8 +482,8 @@ namespace BloombergFLP.CollectdWin
                 }
                 else
                 {
-                    Logger.Error("Cannot find method for creating metric generator:{0}", counter);
-                    continue;
+                    Logger.Info("Cannot find method for creating metric generator:{0}, using default generator.", counter.ToString());
+                    metricGenerator = Helper._Create();
                 }
                 // configure the object based on the properties
                 Dictionary<string, object> parameters = new Dictionary<string, object>();
