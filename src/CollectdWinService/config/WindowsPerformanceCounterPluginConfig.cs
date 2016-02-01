@@ -4,14 +4,14 @@ namespace BloombergFLP.CollectdWin
 {
     internal class WindowsPerformanceCounterPluginConfig : ConfigurationSection
     {
-        [ConfigurationProperty("ReloadConfiguration", IsRequired = true)]
-        public ReloadConfigurationConfig ReloadConfiguration
+        [ConfigurationProperty("RefreshInstancesConfiguration", IsRequired = true)]
+        public RefreshInstancesConfigurationConfig RefreshInstancesConfiguration
         {
-            get { return (ReloadConfigurationConfig)base["ReloadConfiguration"]; }
-            set { base["ReloadConfiguration"] = value; }
+            get { return (RefreshInstancesConfigurationConfig)base["RefreshInstancesConfiguration"]; }
+            set { base["RefreshInstancesConfiguration"] = value; }
         }
 
-        public sealed class ReloadConfigurationConfig : ConfigurationElement
+        public sealed class RefreshInstancesConfigurationConfig : ConfigurationElement
         {
             [ConfigurationProperty("Enable", IsRequired = true)]
             public bool Enable
@@ -46,6 +46,20 @@ namespace BloombergFLP.CollectdWin
 
         public sealed class CounterConfig : ConfigurationElement
         {
+            [ConfigurationProperty("Transformer", IsRequired = false, DefaultValue = "")]
+            public string Transformer
+            {
+                get { return (string)base["Transformer"]; }
+                set { base["Transformer"] = value; }
+            }
+
+            [ConfigurationProperty("TransformerParameters", IsRequired = false)]
+            public string TransformerParameters
+            {
+                get { return (string)base["TransformerParameters"]; }
+                set { base["TransformerParameters"] = value; }
+            }
+
             [ConfigurationProperty("Category", IsRequired = true)]
             public string Category
             {
@@ -95,20 +109,6 @@ namespace BloombergFLP.CollectdWin
                 get { return (string) base["CollectdTypeInstance"]; }
                 set { base["CollectdTypeInstance"] = value; }
             }
-
-            [ConfigurationProperty("ScaleUpFactor", IsRequired = false)]
-            public uint ScaleUpFactor
-            {
-                get { return (uint) base["ScaleUpFactor"]; }
-                set { base["ScaleUpFactor"] = value; }
-            }
-
-            [ConfigurationProperty("ScaleDownFactor", IsRequired = false)]
-            public uint ScaleDownFactor
-            {
-                get { return (uint) base["ScaleDownFactor"]; }
-                set { base["ScaleDownFactor"] = value; }
-            }
         }
 
         public sealed class CounterConfigCollection : ConfigurationElementCollection
@@ -121,7 +121,7 @@ namespace BloombergFLP.CollectdWin
             protected override object GetElementKey(ConfigurationElement element)
             {
                 var counterConfig = (CounterConfig) element;
-                return (counterConfig.Category + "_" + counterConfig.Name + "_" + counterConfig.Instance);
+                return (counterConfig.CollectdPlugin + "_" + counterConfig.CollectdPluginInstance + "_" + counterConfig.CollectdType + "_" + counterConfig.CollectdTypeInstance);
             }
         }
     }

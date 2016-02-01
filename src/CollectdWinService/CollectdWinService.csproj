@@ -92,6 +92,7 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="NLog">
       <HintPath>..\..\third-party\NLog.dll</HintPath>
     </Reference>
@@ -156,6 +157,7 @@
     </None>
     <None Include="config\WindowsPerformanceCounter.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </None>
     <None Include="config\WriteHttp.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -175,6 +177,9 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
