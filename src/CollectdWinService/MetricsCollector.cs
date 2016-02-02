@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Threading;
+using System.Diagnostics;
 using NLog;
 
 namespace BloombergFLP.CollectdWin
@@ -139,9 +140,12 @@ namespace BloombergFLP.CollectdWin
                     }
                     Thread.Sleep(_interval*1000);
                 }
-                catch (Exception exp)
+                catch (Exception ex)
                 {
-                    Logger.Error("ReadThreadProc() got exception : ", exp);
+                    //Get a StackTrace object for the exception
+                    StackTrace st = new StackTrace(ex, true);
+
+                    Logger.Error("ReadThreadProc() got exception : {0}, {1}", ex.ToString(), st.ToString());
                 }
             }
             Logger.Trace("ReadThreadProc() return");

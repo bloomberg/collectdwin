@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Timers;
 using System.Reflection;
+using System.Text;
 using Microsoft.VisualBasic.Devices;
 using NLog;
 
@@ -330,27 +331,31 @@ namespace BloombergFLP.CollectdWin
             averagesGenerator.TakeSample();
         }
 
-        private void TakeSample()
+        private bool TakeSample()
         {
             // get a sample for each of MetricRetrievers
             List<List<double>> sample = new List<List<double>>();
             // each sample is an array of [MetricRetrievers, ValuesOfEachCounterName]
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
             {
-                var vals = metricRetriver.Retrive(_transform);
-                if (vals != null)
-                    sample.Add(vals);
+                var vals = metricRetriver.Retrive(_transform);  // list of values from each counter
+                if (vals == null)
+                    return false;
+                sample.Add(vals);
             }
             // add the "sample" into "_samples"
             _mutex.WaitOne();
-            for(int i = 0; i < sample.Count; ++i)
+            var retrievers = sample.Count;
+            for (int i = 0; i < retrievers; ++i)
             {
-                List<List<double>> sampleList = _samples[i];
-                sampleList.Insert(0, sample[i]);
+                var sampleList = _samples[i];
+                var vals = sample[i]; // list of values from each counter
+                sampleList.Insert(0, vals);
                 if (sampleList.Count > MaxIntervalInSeconds)
                     sampleList.RemoveAt(sampleList.Count-1);
             }
             _mutex.ReleaseMutex();
+            return true;
         }
 
         public override bool Refresh()
@@ -366,17 +371,26 @@ namespace BloombergFLP.CollectdWin
                 return false;
             string averageIntervals = Helper.DictionaryValue(config, "TransformerParameters");
             if (averageIntervals == null)
+            {
+                Logger.Error("AveragesGenerator: no interval is configured for averaging.");
                 return false;
+            }
             string[] averagesInString = averageIntervals.Split(',');
             foreach (string interval in averagesInString)
             {
                 uint val;
                 if (!UInt32.TryParse(interval, out val) || val == 0)
+                {
+                    Logger.Error("AveragesGenerator: average interval should be a positive number.");
                     return false;
+                }
                 AverageIntervalsInSeconds.Add(val);
             }
             if (AverageIntervalsInSeconds.Count == 0)
+            {
+                Logger.Error("AveragesGenerator: average intervals are not configured correctly.");
                 return false;
+            }
             // TODO: support unsorted average values
             // sort is not necessary now. NextValues() can only return a sorted average values ascendantly
             AverageIntervalsInSeconds.Sort();
@@ -386,7 +400,11 @@ namespace BloombergFLP.CollectdWin
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
                 _samples.Add(new List<List<double>>());
             // take the first sample
-            TakeSample();
+            if (!TakeSample())
+            {
+                Logger.Error("AveragesGenerator: Failed to take the first sample.");
+                return false;
+            }
             // set up sampling timer
             _timer.Elapsed += (sender, e) => OnTakeSample(sender, e, this); ;
             _timer.AutoReset = true;
@@ -402,36 +420,36 @@ namespace BloombergFLP.CollectdWin
             int i = 0;
             foreach (MetricRetriever metricRetriver in MetricRetrievers)
             {
-                List<double> average = new List<double>();
-                List<List<double>> sampleList = _samples[i]; ++i;
-                List<double> sum = new List<double>();
-                for (int n = 0; n < sampleList[0].Count; ++n)
-                    sum.Add(0);
+                var averages = new List<double>();
+                var sampleList = _samples[i++];
+                var sampleCount = sampleList.Count;
+                var lastestSample = sampleList[0];
+                var sums = new List<double>();
+                var counters = lastestSample.Count;
+                for (int n = 0; n < counters; ++n)
+                    sums.Add(0);
                 uint interval = AverageIntervalsInSeconds[0];
                 int intervalCount = 0;
-                for (int count=0; count < sampleList.Count; ++count)
+                for (int count = 0; count < sampleCount; ++count)
                 {
-                    List<double> sample = sampleList[i];
-                    for (int n=0; n < sum.Count; ++n)
-                        sum[n] += sample[n];
+                    List<double> sample = sampleList[count];
+                    for (int n = 0; n < counters; ++n)
+                        sums[n] += sample[n];
                     if (count + 1 == interval)
                     {
-                        foreach (double s in sum)
-                            average.Add(s / interval);
+                        foreach (double sum in sums)
+                            averages.Add(sum / interval);
                         ++intervalCount;
                         if (intervalCount < AverageIntervalsInSeconds.Count)
-                        {
                             interval = AverageIntervalsInSeconds[intervalCount];
-                        }
                     }
                 }
+                // add the averages for intervals that we don't have enough samples
                 for (; intervalCount < AverageIntervalsInSeconds.Count; ++intervalCount)
-                {
-                    foreach (double s in sum)
-                        average.Add(s / sampleList.Count);
-                }
+                    foreach (double sum in sums)
+                        averages.Add(sum / sampleCount);
 
-                var metricValue = GetMetricValue(average);
+                var metricValue = GetMetricValue(averages);
                 if (CollectdPluginInstance == null || CollectdPluginInstance == String.Empty)
                     metricValue.PluginInstanceName = metricRetriver.Instance;
 
@@ -472,6 +490,15 @@ namespace BloombergFLP.CollectdWin
             _metricGenerators.Clear();
             foreach (WindowsPerformanceCounterPluginConfig.CounterConfig counter in config.Counters)
             {
+                // configure the object based on the properties
+                StringBuilder generatorConfig = new StringBuilder("Configuring metric generator: ");
+                Dictionary<string, object> parameters = new Dictionary<string, object>();
+                foreach (PropertyInformation property in counter.ElementInformation.Properties)
+                {
+                    parameters[property.Name] = (object)property.Value;
+                    generatorConfig.Append(property.Name + " = " + "'" + property.Value + "', ");
+                }
+                Logger.Info(generatorConfig.ToString());
                 // create the IMetricGenerator object based on GeneratorClass
                 //Get the method information using the method info class
                 MethodInfo createMethodInfo = typeof(Helper).GetMethod("_Create" + counter.Transformer);
@@ -482,18 +509,12 @@ namespace BloombergFLP.CollectdWin
                 }
                 else
                 {
-                    Logger.Info("Cannot find method for creating metric generator:{0}, using default generator.", counter.ToString());
+                    Logger.Info("Cannot find method for creating metric generator: Transformer={0}, using default generator.", counter.Transformer);
                     metricGenerator = Helper._Create();
-                }
-                // configure the object based on the properties
-                Dictionary<string, object> parameters = new Dictionary<string, object>();
-                foreach (PropertyInformation property in counter.ElementInformation.Properties)
-                {
-                    parameters[property.Name] = (object) property.Value;
                 }
                 if (!metricGenerator.Configure(parameters))
                 {
-                    Logger.Error("Cannot config metric generator:{0}", counter);
+                    Logger.Error("Cannot config metric generator:{0}", counter.Transformer);
                     continue;
                 }
                 // add it to the list
