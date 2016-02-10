@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CollectdWinService", "CollectdWinService\CollectdWinService.csproj", "{D4244E6B-84EC-41A0-96A7-4F489F6098BC}"
 EndProject
@@ -9,6 +9,8 @@ Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "CollectdWin", "installer\Co
 	ProjectSection(ProjectDependencies) = postProject
 		{D4244E6B-84EC-41A0-96A7-4F489F6098BC} = {D4244E6B-84EC-41A0-96A7-4F489F6098BC}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CollectdWinTest", "CollectdWinTest\CollectdWinTest.csproj", "{6F05D77A-F180-4779-95FE-75A5223417DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +57,22 @@ Global
 		{93CC9E80-B6F5-4768-998E-889BDF5AB579}.Release|x64.Build.0 = Release|x64
 		{93CC9E80-B6F5-4768-998E-889BDF5AB579}.Release|x86.ActiveCfg = Release|x86
 		{93CC9E80-B6F5-4768-998E-889BDF5AB579}.Release|x86.Build.0 = Release|x86
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|x64.ActiveCfg = Debug|x64
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|x64.Build.0 = Debug|x64
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Debug|x86.Build.0 = Debug|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|x64.ActiveCfg = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|x64.Build.0 = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|x86.ActiveCfg = Release|Any CPU
+		{6F05D77A-F180-4779-95FE-75A5223417DF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

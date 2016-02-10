@@ -23,6 +23,7 @@ namespace BloombergFLP.CollectdWin
         private bool _runAggregatorThread;
         private bool _runReadThread, _runWriteThread;
         private Thread _writeThread;
+        private IDictionary<string, string> _metaData;
 
         public MetricsCollector()
         {
@@ -32,6 +33,8 @@ namespace BloombergFLP.CollectdWin
                 Logger.Error("Cannot get configuration section");
                 return;
             }
+
+            _metaData = CollectdWinConfigHelper.getMetaData();
 
             _runReadThread = false;
             _runWriteThread = false;
@@ -173,6 +176,7 @@ namespace BloombergFLP.CollectdWin
                             metricValue.Interval = _interval;
 
                             _aggregator.Aggregate(ref metricValue);
+                            metricValue.AddMetaData(_metaData);
 
                             foreach (IMetricsPlugin plugin in _plugins)
                             {
