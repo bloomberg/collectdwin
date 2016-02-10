@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using NLog;
-using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 
 namespace BloombergFLP.CollectdWin
 {
@@ -24,15 +24,18 @@ namespace BloombergFLP.CollectdWin
         void Flush();
     }
 
-    internal class MetricValue
+    public class MetricValue
     {
         private const string MetricJsonFormat =
             @"{{""host"":""{0}"", ""plugin"":""{1}"", ""plugin_instance"":""{2}""," +
             @" ""type"":""{3}"", ""type_instance"":""{4}"", ""time"":{5}, ""interval"":{6}," +
-            @" ""dstypes"":[{7}], ""dsnames"":[{8}], ""values"":[{9}]}}";
+            @" ""dstypes"":[{7}], ""dsnames"":[{8}], ""values"":[{9}]{10}}}";
+        private const string MetaDataJsonFormat = @", ""meta"":{0}";
 
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+        private readonly IDictionary<string, string> Meta = new SortedDictionary<string, string>();
+      
         public string HostName { get; set; }
         public string PluginName { get; set; }
         public string PluginInstanceName { get; set; }
@@ -42,6 +45,31 @@ namespace BloombergFLP.CollectdWin
         public int Interval { get; set; }
         public double Epoch { get; set; }
         public double[] Values { get; set; }
+
+        public IDictionary<string, string> MetaData
+        {
+            get
+            {
+                return Meta;
+            }
+        }
+
+        public void AddMetaData(string tagName, string tagValue)
+        {
+            Meta[tagName] = tagValue;
+        }
+
+        public void AddMetaData(IDictionary<string, string> meta)
+        {
+            if (meta == null)
+            {
+                return;
+            }
+            foreach(var tag in meta)
+            {
+                Meta[tag.Key] = tag.Value;
+            }
+        }
 
         public string Key()
         {
@@ -69,6 +97,11 @@ namespace BloombergFLP.CollectdWin
             return (str.Replace(@"\", @"\\"));
         }
 
+        public string GetMetaDataJsonStr()
+        {            
+            return(new JavaScriptSerializer().Serialize(MetaData));
+        }
+
         public string GetMetricJsonStr()
         {
             IList<DataSource> dsList = DataSetCollection.Instance.GetDataSource(TypeName);
@@ -91,9 +124,23 @@ namespace BloombergFLP.CollectdWin
             string dsNamesStr = string.Join(",", dsNames.ConvertAll(m => string.Format("\"{0}\"", m)).ToArray());
             string valStr = string.Join(",", Array.ConvertAll(Values, val => val.ToString(CultureInfo.InvariantCulture)));
 
-            string res = string.Format(MetricJsonFormat, HostName, PluginName,
-                EscapeString(PluginInstanceName), TypeName, EscapeString(TypeInstanceName), epochStr,
-                Interval, dsTypesStr, dsNamesStr, valStr);
+
+            var metaDataStr = "";
+            if (MetaData.Count > 0)
+            {
+                metaDataStr = string.Format(MetaDataJsonFormat, GetMetaDataJsonStr());
+            }
+            var res = "";
+            try
+            {
+                res = string.Format(MetricJsonFormat, HostName, PluginName,
+                    EscapeString(PluginInstanceName), TypeName, EscapeString(TypeInstanceName), epochStr,
+                    Interval, dsTypesStr, dsNamesStr, valStr, metaDataStr);
+            }
+            catch (Exception exp)
+            {
+                Logger.Error("Got exception in json conversion : {0}", exp);
+            }
             return (res);
         }
     }

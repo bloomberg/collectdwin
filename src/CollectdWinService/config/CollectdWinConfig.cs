@@ -1,8 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 
 namespace BloombergFLP.CollectdWin
 {
+
+    internal class CollectdWinConfigHelper
+    {
+        public static IDictionary<string, string> getMetaData()
+        {
+            IDictionary<string, string> metaData = new Dictionary<string, string>();
+
+            var coreConfig = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            if (coreConfig == null)
+            {
+                throw new Exception("Cannot get configuration section : CollectdWinConfig");
+            }
+            foreach (CollectdWinConfig.TagConfig tagConfig in coreConfig.MetaData)
+            {
+                metaData[tagConfig.Name] = tagConfig.Value;
+            }
+            return (metaData);
+        }
+    }
+
     internal class CollectdWinConfig : ConfigurationSection
     {
         [ConfigurationProperty("GeneralSettings", IsRequired = true)]
@@ -18,6 +39,14 @@ namespace BloombergFLP.CollectdWin
         {
             get { return (PluginCollection) base["Plugins"]; }
             set { base["Plugins"] = value; }
+        }
+
+        [ConfigurationProperty("MetaData", IsRequired = false)]
+        [ConfigurationCollection(typeof(TagCollection), AddItemName = "Tag")]
+        public TagCollection MetaData
+        {
+            get { return (TagCollection)base["MetaData"]; }
+            set { base["MetaData"] = value; }
         }
 
         public static CollectdWinConfig GetConfig()
@@ -91,6 +120,42 @@ namespace BloombergFLP.CollectdWin
                 get { return (bool) base["Enable"]; }
                 set { base["Enable"] = value; }
             }
+        }
+
+        public sealed class TagCollection : ConfigurationElementCollection
+        {
+            protected override ConfigurationElement CreateNewElement()
+            {
+                return new TagConfig();
+            }
+
+            protected override object GetElementKey(ConfigurationElement element)
+            {
+                return (((TagConfig)element).UniqueId);
+            }
+        }
+        public sealed class TagConfig : ConfigurationElement
+        {
+            public TagConfig()
+            {
+                UniqueId = Guid.NewGuid();
+            }
+
+            internal Guid UniqueId { get; set; }
+
+            [ConfigurationProperty("Name", IsRequired = true)]
+            public string Name
+            {
+                get { return (string)base["Name"]; }
+                set { base["Name"] = value; }
+            }
+
+            [ConfigurationProperty("Value", IsRequired = true)]
+            public string Value
+            {
+                get { return (string)base["Value"]; }
+                set { base["Value"] = value; }
+            }           
         }
     }
 }
