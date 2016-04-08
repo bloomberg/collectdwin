@@ -1,5 +1,26 @@
 # Change Log
 
+## [v0.5.14](https://github.com/bloomberg/collectdwin/tree/v0.5.14) (2016-03-22)
+[Full Changelog](https://github.com/bloomberg/collectdwin/compare/v0.5.8...v0.5.14)
+
+**Fixed bugs:**
+
+- Install Fails on 2008, 2012 64 bit [\#2](https://github.com/bloomberg/collectdwin/issues/2)
+
+**Closed issues:**
+
+- Console Output [\#29](https://github.com/bloomberg/collectdwin/issues/29)
+
+**Merged pull requests:**
+
+- Add support for metadata and unit tests [\#28](https://github.com/bloomberg/collectdwin/pull/28) ([yogeswaran](https://github.com/yogeswaran))
+- fix a bug with AveragesGenerator and add more debug log info. [\#27](https://github.com/bloomberg/collectdwin/pull/27) ([budaqing](https://github.com/budaqing))
+- fix a bug with creating genrators [\#26](https://github.com/bloomberg/collectdwin/pull/26) ([budaqing](https://github.com/budaqing))
+- add more metrics for Windows [\#25](https://github.com/bloomberg/collectdwin/pull/25) ([budaqing](https://github.com/budaqing))
+- Only log error on sequential failures [\#24](https://github.com/bloomberg/collectdwin/pull/24) ([shanson7](https://github.com/shanson7))
+- Configurations changes to make metrics in synch with Unix Collectd [\#23](https://github.com/bloomberg/collectdwin/pull/23) ([yogeswaran](https://github.com/yogeswaran))
+- make collectdwin be able to both upgrade and downgrade. [\#22](https://github.com/bloomberg/collectdwin/pull/22) ([budaqing](https://github.com/budaqing))
+
 ## [v0.5.8](https://github.com/bloomberg/collectdwin/tree/v0.5.8) (2015-11-11)
 [Full Changelog](https://github.com/bloomberg/collectdwin/compare/v0.5.3...v0.5.8)
 
