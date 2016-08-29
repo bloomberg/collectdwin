@@ -302,7 +302,7 @@ namespace BloombergFLP.CollectdWin
             {
                 string logstr =
                     string.Format(
-                        "Category:{0} - Instance:{1} - counter:{2} - CollectdPlugin:{4} - CollectdPluginInstance:{5} - CollectdType:{6} - CollectdTypeInstance:{7}",
+                        "Category:{0} - Instance:{1} - counter:{2} - CollectdPlugin:{3} - CollectdPluginInstance:{4} - CollectdType:{5} - CollectdTypeInstance:{6}",
                         CounterCategory, missingInstance.Instance, CounterName, 
                         CollectdPlugin, CollectdPluginInstance, CollectdType, CollectdTypeInstance);
                 Logger.Info("Removed Performance COUNTER : {0}", logstr);
