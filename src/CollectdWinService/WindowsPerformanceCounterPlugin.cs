@@ -242,31 +242,39 @@ namespace BloombergFLP.CollectdWin
 
         public override bool Refresh()
         {
-            if (MetricRetrievers == null)
-                MetricRetrievers = new List<MetricRetriever>();
-            if (CounterInstance != null && CounterInstance == "*")
-            {
-                var cat = new PerformanceCounterCategory(CounterCategory);
-                string[] instances = cat.GetInstanceNames();
-                foreach (string instance in instances)
+            try
+            { 
+                if (MetricRetrievers == null)
+                    MetricRetrievers = new List<MetricRetriever>();
+                if (CounterInstance != null && CounterInstance == "*")
                 {
-                    if (!ExistInstance(instance))
+                    var cat = new PerformanceCounterCategory(CounterCategory);
+                    string[] instances = cat.GetInstanceNames();
+                    foreach (string instance in instances)
                     {
-                        MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, instance);
-                        if (metricRetriver == null)
-                            return false;
-                        // Replace collectd_plugin_instance with the Instance got from counter
-                        metricRetriver.Instance = instance;
-                        MetricRetrievers.Add(metricRetriver);
+                        if (!ExistInstance(instance))
+                        {
+                            MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, instance);
+                            if (metricRetriver == null)
+                                return false;
+                            // Replace collectd_plugin_instance with the Instance got from counter
+                            metricRetriver.Instance = instance;
+                            MetricRetrievers.Add(metricRetriver);
+                        }
                     }
                 }
+                else if (MetricRetrievers.Count == 0)
+                {
+                    MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, CounterInstance);
+                    if (metricRetriver == null)
+                        return false;
+                    MetricRetrievers.Add(metricRetriver);
+                }
             }
-            else if (MetricRetrievers.Count == 0)
+            catch (Exception exp)
             {
-                MetricRetriever metricRetriver = GetMetricRetriever(CounterCategory, CounterName, CounterInstance);
-                if (metricRetriver == null)
-                    return false;
-                MetricRetrievers.Add(metricRetriver);
+                Logger.Error("Got exception : {0} in Refresh(), CounterCategory: {1}, CounterName: {2}, CounterInstance: {3}", exp, CounterCategory, CounterName, CounterInstance);
+                return false;
             }
             return true;
         }
