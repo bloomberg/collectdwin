@@ -5,6 +5,7 @@
 *.suo
 *.user
 *.sln.docstates
+src/CollectdWinService.userprefs
 
 # Build results
 
@@ -154,3 +155,6 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+
+# IntelliJ IDEA
+.idea

@@ -60,12 +60,21 @@ namespace BloombergFLP.CollectdWin
     {
         static protected string s_hostName = Util.GetHostName();
         static protected readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        public string InstanceName;
         public string CounterCategory, CounterName, CounterInstance;
         public string CollectdPlugin, CollectdPluginInstance, CollectdType, CollectdTypeInstance;
         protected Helper.TransformFunction _transform;
     
         public virtual bool Configure(Dictionary<string, object> config)
         {
+            var generalConfig = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            if (generalConfig == null)
+            {
+                Logger.Error("Cannot get configuration section");
+                return false;
+            }
+            InstanceName = generalConfig.GeneralSettings.InstanceName;
+
             CounterCategory = Helper.DictionaryValue(config, "Category");
             CounterName = Helper.DictionaryValue(config, "Name");
             CounterInstance = Helper.DictionaryValue(config, "Instance");
@@ -97,7 +106,7 @@ namespace BloombergFLP.CollectdWin
         {
             var metricValue = new MetricValue
             {
-                HostName = s_hostName,
+                HostName = String.IsNullOrEmpty(InstanceName) ? s_hostName : InstanceName,
                 PluginName = CollectdPlugin,
                 PluginInstanceName = CollectdPluginInstance,
                 TypeName = CollectdType,

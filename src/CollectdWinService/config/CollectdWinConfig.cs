@@ -76,6 +76,13 @@ namespace BloombergFLP.CollectdWin
                 get { return (bool) base["StoreRates"]; }
                 set { base["StoreRates"] = value; }
             }
+
+            [ConfigurationProperty("InstanceName", IsRequired = false)]
+            public string InstanceName
+            {
+                get { return (string) base["InstanceName"]; }
+                set { base["InstanceName"] = value; }
+            }
         }
 
         public sealed class PluginCollection : ConfigurationElementCollection
