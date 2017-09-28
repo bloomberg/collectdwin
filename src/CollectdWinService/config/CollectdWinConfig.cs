@@ -77,11 +77,11 @@ namespace BloombergFLP.CollectdWin
                 set { base["StoreRates"] = value; }
             }
 
-            [ConfigurationProperty("InstanceName", IsRequired = false)]
-            public string InstanceName
+            [ConfigurationProperty("HostName", IsRequired = false)]
+            public string HostName
             {
-                get { return (string) base["InstanceName"]; }
-                set { base["InstanceName"] = value; }
+                get { return (string) base["HostName"]; }
+                set { base["HostName"] = value; }
             }
         }
 

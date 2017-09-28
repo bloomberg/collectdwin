@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
 using NLog;
@@ -27,6 +28,16 @@ namespace BloombergFLP.CollectdWin
             catch (SocketException)
             {
                 Logger.Warn("Unable to resolve hostname, using MachineName: {0}", hostname);
+            }
+            var generalConfig = ConfigurationManager.GetSection("CollectdWinConfig") as CollectdWinConfig;
+            if (generalConfig == null)
+            {
+                Logger.Error("Cannot get configuration section");
+                return hostname;
+            }
+            if (! (String.IsNullOrEmpty(generalConfig.GeneralSettings.HostName)))
+            {
+                hostname = generalConfig.GeneralSettings.HostName;
             }
             return hostname;
         }
