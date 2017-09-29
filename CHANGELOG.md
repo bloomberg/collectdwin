@@ -1,5 +1,24 @@
 # Change Log
 
+## [v0.5.19](https://github.com/bloomberg/collectdwin/tree/v0.5.19) (2017-09-29)
+[Full Changelog](https://github.com/bloomberg/collectdwin/compare/v0.5.14...v0.5.19)
+
+**Implemented enhancements:**
+
+- Add to Chocolatey [\#1](https://github.com/bloomberg/collectdwin/issues/1)
+
+**Closed issues:**
+
+- InvalidOperationException thrown when a performance category does not exist [\#35](https://github.com/bloomberg/collectdwin/issues/35)
+- Lot of System.FormatException in eventlog [\#33](https://github.com/bloomberg/collectdwin/issues/33)
+
+**Merged pull requests:**
+
+- Add a new configuration option : HostName. Use it in WindowsPerfo… [\#41](https://github.com/bloomberg/collectdwin/pull/41) ([tpoindessous](https://github.com/tpoindessous))
+- Fix broken headings in Markdown files [\#38](https://github.com/bloomberg/collectdwin/pull/38) ([bryant1410](https://github.com/bryant1410))
+- Catch exception due to invalid performance category and log error [\#36](https://github.com/bloomberg/collectdwin/pull/36) ([yogeswaran](https://github.com/yogeswaran))
+- fixed string format to match the number of arguments [\#34](https://github.com/bloomberg/collectdwin/pull/34) ([yogeswaran](https://github.com/yogeswaran))
+
 ## [v0.5.14](https://github.com/bloomberg/collectdwin/tree/v0.5.14) (2016-03-22)
 [Full Changelog](https://github.com/bloomberg/collectdwin/compare/v0.5.8...v0.5.14)
 
